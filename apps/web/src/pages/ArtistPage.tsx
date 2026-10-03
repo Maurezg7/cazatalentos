@@ -6,7 +6,8 @@ import { parseEther } from 'viem';
 import { useAccount, useBalance } from 'wagmi';
 import { fetchArtistPools, fetchArtistProfile } from '../lib/api';
 import { ActionButton } from '../components/ActionButton';
-import { ArtistHeader } from '../components/ArtistHeader';
+import { useEntrySheet } from '../components/EntrySheet';
+import { ArtistHeader, CoverMedia } from '../components/ArtistHeader';
 import { BeliefCard } from '../components/BeliefCard';
 import { ErrorState } from '../components/ErrorState';
 import { LoadingState } from '../components/LoadingState';
@@ -36,7 +37,8 @@ export function ArtistPage() {
   const [poolFormOpen, setPoolFormOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
 
-  const { ready, authenticated, login } = usePrivy();
+  const { ready, authenticated } = usePrivy();
+  const { openEntry } = useEntrySheet();
   const { address, isConnected } = useAccount();
   const minStake = useMinStake();
   const recentMine = useRecentRegisteredArtist(address);
@@ -121,148 +123,181 @@ export function ArtistPage() {
   );
 
   return (
-    <section className="space-y-6 pt-4">
-      <ArtistHeader name={displayName} supporterCount={artist.supporterCount} />
+    <section className="flex flex-col pb-6 pt-4 lg:pb-10 lg:pt-8">
+      <div className="w-full rounded-2xl border-2 border-[#3c4626] bg-[#181d13] p-4 text-[#e3e8d8] shadow-2xl md:p-6">
+        <CoverMedia src={profile?.photo ?? null} name={displayName} />
 
-      {authenticated &&
-      recentMine.data !== undefined &&
-      recentMine.data !== null &&
-      artistId !== undefined &&
-      recentMine.data !== artistId ? (
-        <Link
-          to={`/artist/${recentMine.data.toString()}`}
-          className="block text-sm text-ocre-600 underline"
-        >
-          Tu perfil ya está creado →
-        </Link>
-      ) : authenticated && !isOwner ? (
-        <button
-          type="button"
-          onClick={() => setRegisterOpen(true)}
-          className="block text-left text-sm text-ocre-600 underline"
-        >
-          ¿Sos artista? Creá tu perfil →
-        </button>
-      ) : null}
-
-      {profile?.photo ? (
-        <img
-          src={profile.photo}
-          alt={displayName}
-          className="h-40 w-full rounded-lg object-cover"
-        />
-      ) : null}
-      {profile?.bio ? <p className="text-base text-tierra-700">{profile.bio}</p> : null}
-      {linkEntries.length > 0 ? (
-        <ul className="space-y-1 text-sm">
-          {linkEntries.map(([label, href]) => (
-            <li key={label}>
-              <a href={href} target="_blank" rel="noreferrer" className="text-ocre-600 underline">
-                {label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {isOwner ? (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="font-serif text-2xl text-tierra-900">Mis pozos</h2>
-          </div>
-          {poolsQuery.isLoading ? <LoadingState label="Buscando pozos…" /> : null}
-          {!poolsQuery.isLoading && pools.length === 0 ? (
-            <p className="text-sm text-tierra-700">Todavía no abriste ningún pozo.</p>
-          ) : null}
-          <div className="space-y-3">
-            {pools.map((pool) => (
-              <Link key={pool.id} to={`/pool/${pool.id}`} className="block">
-                <PoolCard pool={pool} />
-              </Link>
-            ))}
-          </div>
-          {artist.supporterCount === 0 ? (
-            <p className="text-sm text-tierra-700">
-              Cuando alguien deje su marca, vas a poder abrir un pozo de recompensa.
-            </p>
-          ) : (
-            <ActionButton label="Abrir pozo de recompensa" onClick={() => setPoolFormOpen(true)} />
-          )}
-        </section>
-      ) : null}
-
-      {hasBelief && supporter && !isOwner ? (
-        <BeliefCard
-          artistId={artistId}
-          artistName={displayName}
-          supporter={supporter}
-          totalSupporters={artist.supporterCount}
-        />
-      ) : null}
-
-      {!hasBelief && !isOwner ? (
-        <div className="space-y-4">
-          <p className="text-base text-tierra-700">
-            Si estuviste antes de que esto se haga grande, este es el momento de dejarlo escrito.
-          </p>
-
-          {!authenticated ? (
-            <ActionButton
-              label="Entrar para dejar mi marca"
-              onClick={() => login()}
-              disabled={!ready}
+        <div className="mt-0 grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
+          <div className="flex flex-col gap-6 lg:col-span-5">
+            <ArtistHeader
+              artistId={artistId}
+              name={displayName}
+              bio={profile?.bio ?? null}
+              photo={profile?.photo ?? null}
+              isOwner={isOwner}
+              supporterCount={artist.supporterCount}
+              poolCount={pools.length}
             />
-          ) : (
-            <>
-              {balanceIsTooLow ? (
-                <div className="space-y-2 rounded-lg border border-ocre-400 bg-ocre-500/10 p-4">
-                  <p className="text-sm font-medium text-tierra-900">
-                    Necesitás un poco de MON para dejar tu marca.
-                  </p>
-                  <p className="text-xs text-tierra-700">
-                    Tu dirección: {shortAddress(address ?? '')}. Copiala y pedí MON en el faucet de
-                    Monad.
-                  </p>
-                  <a
-                    href="https://faucet.monad.xyz"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block text-xs text-ocre-600 underline"
-                  >
-                    Ir al faucet →
-                  </a>
-                </div>
-              ) : null}
+            {linkEntries.length > 0 ? (
+              <div className="rounded-2xl border-2 border-[#3b4725] bg-[#1f2618] p-4">
+                <span className="mb-3 block font-mono text-[0.6875rem] uppercase tracking-wider text-[#879373]">
+                  Dónde escucharme
+                </span>
+                <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {linkEntries.map(([label, href]) => (
+                    <li key={label}>
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-[#414d2b] bg-[#262f1e] px-3 py-2 font-mono text-[0.6875rem] text-[#d6debe] transition-colors hover:bg-[#323d27]"
+                      >
+                        <span className="truncate">{prettyLinkLabel(label)}</span>
+                        <span className="shrink-0 text-primary">Escuchar</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
 
-              <ActionButton
-                label={
-                  minStake !== undefined
-                    ? `Dejar mi marca (depósito ${formatMON(minStake)})`
-                    : 'Dejar mi marca'
-                }
-                onClick={() => {
-                  reset();
-                  void sign(artistId).catch(() => undefined);
-                }}
-                disabled={
-                  isPending || isConfirming || minStake === undefined || balanceIsTooLow
-                }
-                loading={isPending || isConfirming}
+          <div className="flex flex-col gap-6 lg:col-span-7">
+            {hasBelief && supporter && !isOwner ? (
+              <BeliefCard
+                artistId={artistId}
+                artistName={displayName}
+                supporter={supporter}
+                totalSupporters={artist.supporterCount}
               />
+            ) : null}
 
-              {signError ? (
-                <p className="text-sm text-vino-700">
-                  No se pudo registrar la marca. Probá de nuevo en un momento.
+            {!hasBelief && !isOwner ? (
+              <div className="flex flex-col gap-2 rounded-2xl border-2 border-[#434e2b] bg-[#21281a] p-4 lg:p-6">
+                {!authenticated ? (
+                  <ActionButton
+                    label="Entrar para dejar mi marca"
+                    onClick={() => openEntry()}
+                    disabled={!ready}
+                  />
+                ) : (
+                  <>
+                    {balanceIsTooLow ? (
+                      <div className="space-y-2 rounded-xl border border-ocre-400 bg-ocre-500/10 p-4">
+                        <p className="text-sm font-medium text-[#f5f7ee]">
+                          Necesitás un poco de MON para dejar tu marca.
+                        </p>
+                        <p className="text-xs text-[#a8b393]">
+                          Tu dirección: {shortAddress(address ?? '')}. Copiala y pedí MON en el
+                          faucet de Monad.
+                        </p>
+                        <a
+                          href="https://faucet.monad.xyz"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-h-11 items-center text-xs text-tertiary underline"
+                        >
+                          Ir al faucet →
+                        </a>
+                      </div>
+                    ) : null}
+
+                    <ActionButton
+                      label="Dejar mi marca"
+                      onClick={() => {
+                        reset();
+                        void sign(artistId).catch(() => undefined);
+                      }}
+                      disabled={
+                        isPending || isConfirming || minStake === undefined || balanceIsTooLow
+                      }
+                      loading={isPending || isConfirming}
+                    />
+                  </>
+                )}
+                <p className="text-center font-mono text-[0.6875rem] text-[#879373]">
+                  {minStake !== undefined
+                    ? `Depósito de respaldo: ${formatMON(minStake)} MON + costo de red.`
+                    : 'Depósito de respaldo + costo de red.'}
                 </p>
-              ) : null}
-            </>
-          )}
-        </div>
-      ) : null}
+                {signError ? (
+                  <p className="text-sm text-vino-700">
+                    No se pudo registrar la marca. Probá de nuevo en un momento.
+                  </p>
+                ) : null}
+                {isSuccess ? (
+                  <p className="text-sm text-secondary">Listo. Tu marca quedó registrada.</p>
+                ) : null}
+              </div>
+            ) : null}
 
-      {isSuccess ? (
-        <p className="text-sm text-ocre-600">Listo. Tu marca quedó registrada.</p>
-      ) : null}
+            {isOwner ? (
+              <section className="rounded-2xl border-[3px] border-[#434e2b] bg-[#21281a] p-4 shadow-xl">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#333e21] pb-3">
+                  <h2 className="font-serif text-2xl font-semibold italic text-[#f5f7ee]">
+                    Mis pozos
+                  </h2>
+                  {artist.supporterCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setPoolFormOpen(true)}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[#8ea459] bg-[#5c6b3a] px-3.5 py-2 font-mono text-[0.6875rem] font-bold tracking-wide text-[#12160d] transition-colors hover:bg-[#6c7d44]"
+                    >
+                      Abrir un pozo
+                    </button>
+                  ) : null}
+                </div>
+
+                {poolsQuery.isLoading ? <LoadingState label="Buscando pozos…" /> : null}
+                {!poolsQuery.isLoading && pools.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-[#192013] p-6 text-center">
+                    <p className="font-serif text-xl italic text-[#f5f7ee]">
+                      Todavía no abriste ningún pozo
+                    </p>
+                    <p className="max-w-[280px] text-xs text-[#a8b393]">
+                      Los pozos reúnen depósitos de respaldo para tus próximos discos, giras o
+                      instrumentos.
+                    </p>
+                    {artist.supporterCount === 0 ? (
+                      <p className="text-xs text-[#a8b393]">
+                        Cuando alguien deje su marca, vas a poder abrir un pozo de recompensa.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <div className="flex flex-col gap-3">
+                  {pools.map((pool) => (
+                    <Link key={pool.id} to={`/pool/${pool.id}`} className="block">
+                      <PoolCard pool={pool} />
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {authenticated &&
+            recentMine.data !== undefined &&
+            recentMine.data !== null &&
+            artistId !== undefined &&
+            recentMine.data !== artistId ? (
+              <Link
+                to={`/artist/${recentMine.data.toString()}`}
+                className="flex min-h-11 items-center justify-center gap-1 text-sm text-tertiary hover:underline"
+              >
+                Tu perfil ya está creado →
+              </Link>
+            ) : authenticated && !isOwner ? (
+              <button
+                type="button"
+                onClick={() => setRegisterOpen(true)}
+                className="flex min-h-11 w-full items-center justify-center gap-1 text-sm text-tertiary hover:underline"
+              >
+                ¿Sos artista? Creá tu perfil →
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
 
       <RegisterArtistModal
         open={registerOpen}
@@ -278,19 +313,24 @@ export function ArtistPage() {
       />
 
       {poolFormOpen ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-tierra-900/40 p-4 sm:items-center">
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/80 p-4 sm:items-center">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="open-pool-title"
-            className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-xl bg-surface-container-high p-5 shadow-lg"
+            className="relative max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl border-[3px] border-[#5c6b3a] bg-[#202718] p-6 text-[#e3e8d8] shadow-2xl"
           >
-            <div className="flex items-start justify-between gap-3">
-              <h2 id="open-pool-title" className="font-serif text-2xl text-tierra-900">
-                Abrir pozo de recompensa
+            <div className="flex items-start justify-between gap-3 border-b-2 border-[#384524] pb-3">
+              <h2 id="open-pool-title" className="font-serif text-2xl font-semibold italic text-[#f5f7ee]">
+                Abrir un pozo
               </h2>
-              <button type="button" onClick={() => setPoolFormOpen(false)} className="text-sm text-tierra-700">
-                Cerrar
+              <button
+                type="button"
+                onClick={() => setPoolFormOpen(false)}
+                aria-label="Cerrar"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-[#3b4725] bg-[#181d13] text-[#8e9a7a] hover:text-[#f4f7ee]"
+              >
+                ✕
               </button>
             </div>
             <PoolOpeningForm
@@ -304,4 +344,10 @@ export function ArtistPage() {
       ) : null}
     </section>
   );
+}
+
+function prettyLinkLabel(label: string): string {
+  const trimmed = label.trim();
+  if (trimmed.length === 0) return 'Link';
+  return trimmed.slice(0, 1).toUpperCase() + trimmed.slice(1);
 }

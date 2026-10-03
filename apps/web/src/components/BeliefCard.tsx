@@ -14,55 +14,90 @@ export function BeliefCard({
   supporter,
   totalSupporters,
 }: BeliefCardProps) {
+  const year = new Date(Number(supporter.signedAt) * 1000).getFullYear();
+
   return (
-    <div className="space-y-3" data-artist-id={artistId.toString()}>
-      <article className="overflow-hidden rounded-xl border border-tierra-100 bg-surface-container-high shadow-sm">
-        <div className="bg-ocre-500 px-4 py-1.5">
-          <p className="text-center text-xs font-medium uppercase tracking-[0.25em] text-white">
-            Cazatalentos
+    <section className="space-y-1" data-artist-id={artistId.toString()}>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="font-mono text-[0.6875rem] uppercase text-outline">Primer testimonio de fe</span>
+        <span className="font-mono text-[0.6875rem] text-on-surface-variant">
+          {year} · {totalSupporters.toString().padStart(3, '0')} pioneros
+        </span>
+      </div>
+
+      <article className="relative flex flex-col justify-between overflow-hidden rounded-lg bg-surface-container p-4 shadow-md">
+        <div className="flex items-center justify-between pb-2">
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="rounded bg-primary-container px-2 py-0.5 font-mono text-[0.6875rem] uppercase text-on-primary-container">
+              Cazatalentos
+            </span>
+            <span className="font-mono text-[0.6875rem] text-on-surface-variant">Creyente temprano</span>
+          </div>
+          <span className="rounded bg-surface-container-highest px-2 py-0.5 font-mono text-[0.6875rem] text-secondary">
+            {levelName(supporter.weight)} ×{supporter.weight}
+          </span>
+        </div>
+
+        <Stamp year={year} />
+
+        <div className="relative z-10 py-4">
+          <span className="block font-mono text-[0.6875rem] uppercase text-outline">Orden de llegada</span>
+          <div className="mt-1 font-mono text-[2rem] leading-none text-primary">{padRank(supporter.rank)}</div>
+          <p className="mt-2 font-serif text-xl italic text-on-surface">
+            Constancia otorgada a favor de {artistName}
           </p>
         </div>
 
-        <div className="space-y-4 px-5 py-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-mono text-4xl font-bold tracking-tight text-tierra-900">
-                {padRank(supporter.rank)}
-              </p>
-              <p className="mt-1 font-mono text-sm text-tierra-700">
-                de {totalSupporters.toString().padStart(3, '0')}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-serif text-base italic text-tierra-900">
-                {levelName(supporter.weight)}
-              </p>
-              <p className="text-xs text-tierra-700">×{supporter.weight}</p>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <h3 className="font-serif text-xl text-tierra-900">{artistName}</h3>
-            <p className="text-sm text-tierra-700">Desde el {formatSignedAt(supporter.signedAt)}</p>
-          </div>
-
-          <div className="border-t border-dashed border-tierra-100" aria-hidden="true" />
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-tierra-700">Depósito</span>
-            <span className="font-medium text-tierra-900">{formatMON(supporter.stake)} MON</span>
-          </div>
+        <div className="flex items-center justify-between rounded bg-surface-container-low px-2 py-2">
+          <span className="font-mono text-[0.6875rem] text-on-surface-variant">
+            {formatSignedAt(supporter.signedAt)}
+          </span>
+          <span className="font-mono text-[0.6875rem] text-secondary">
+            {formatMON(supporter.stake)} MON
+          </span>
         </div>
       </article>
+    </section>
+  );
+}
 
-      <button
-        type="button"
-        disabled
-        title="Próximamente"
-        className="w-full text-center text-sm text-tierra-700 underline decoration-tierra-100 underline-offset-4 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Compartir
-      </button>
+function Stamp({ year }: { year: number }) {
+  return (
+    <div className="pointer-events-none absolute right-3 top-8 opacity-20">
+      <svg className="rotate-[-12deg] text-primary" fill="currentColor" height="110" viewBox="0 0 120 120" width="110">
+        <circle cx="60" cy="60" fill="none" r="54" stroke="currentColor" strokeDasharray="4 3" strokeWidth="2" />
+        <circle cx="60" cy="60" fill="none" r="42" stroke="currentColor" strokeWidth="1" />
+        <text
+          className="text-[8px] uppercase tracking-widest"
+          fill="currentColor"
+          fontFamily="JetBrains Mono, monospace"
+          textAnchor="middle"
+          x="60"
+          y="48"
+        >
+          Salta
+        </text>
+        <text
+          className="text-[16px] italic font-bold"
+          fill="currentColor"
+          fontFamily="Newsreader, serif"
+          textAnchor="middle"
+          x="60"
+          y="68"
+        >
+          {year}
+        </text>
+        <text
+          className="text-[7px] uppercase tracking-wider"
+          fill="currentColor"
+          fontFamily="JetBrains Mono, monospace"
+          textAnchor="middle"
+          x="60"
+          y="84"
+        >
+          Dar fe
+        </text>
+      </svg>
     </div>
   );
 }

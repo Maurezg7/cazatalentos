@@ -99,7 +99,7 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
   if (createdPoolId !== null) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-tierra-900">Listo. El pozo quedó abierto.</p>
+        <p className="text-sm text-[#e3e8d8]">Listo. El pozo quedó abierto.</p>
         <Link to={`/pool/${createdPoolId.toString()}`} className="text-sm text-ocre-600 underline">
           Ver el pozo →
         </Link>
@@ -115,7 +115,7 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
         void onSubmit();
       }}
     >
-      <label className="block space-y-1 text-sm text-tierra-900">
+      <label className="block space-y-1 text-sm text-[#e3e8d8]">
         <span>Monto del pozo (MON)</span>
         <input
           type="number"
@@ -126,11 +126,11 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
             setAmount(event.target.value);
             setError(null);
           }}
-          className="w-full rounded-lg border border-tierra-100 px-3 py-3"
+          className="w-full rounded-lg border-2 border-[#43522a] bg-[#14180f] px-3 py-3 text-[#e4e3d9]"
         />
       </label>
 
-      <label className="block space-y-1 text-sm text-tierra-900">
+      <label className="block space-y-1 text-sm text-[#e3e8d8]">
         <span>¿Qué hito vas a cumplir?</span>
         <textarea
           value={description}
@@ -140,16 +140,16 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
             setDescription(event.target.value);
             setError(null);
           }}
-          className="w-full rounded-lg border border-tierra-100 px-3 py-3"
+          className="w-full rounded-lg border-2 border-[#43522a] bg-[#14180f] px-3 py-3 text-[#e4e3d9]"
         />
-        <span className="text-xs text-tierra-700">
+        <span className="text-xs text-[#9ba888]">
           {description.trim().length < 10
             ? `Faltan ${10 - description.trim().length} caracteres.`
             : `${description.trim().length} / 300`}
         </span>
       </label>
 
-      <label className="block space-y-1 text-sm text-tierra-900">
+      <label className="block space-y-1 text-sm text-[#e3e8d8]">
         <span>Fecha límite</span>
         <input
           type="date"
@@ -160,11 +160,11 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
             setDeadline(event.target.value);
             setError(null);
           }}
-          className="w-full rounded-lg border border-tierra-100 px-3 py-3"
+          className="w-full rounded-lg border-2 border-[#43522a] bg-[#14180f] px-3 py-3 text-[#e4e3d9]"
         />
       </label>
 
-      <p className="rounded-lg bg-tierra-50 p-3 text-sm text-tierra-900">
+      <p className="rounded-lg border border-[#3b4725] bg-[#181f12] p-3 text-sm text-[#e3e8d8]">
         Vas a abrir un pozo de {amount || '…'} MON hasta el {summaryDate}. La descripción queda guardada
         aparte; en la red queda su huella.
       </p>
