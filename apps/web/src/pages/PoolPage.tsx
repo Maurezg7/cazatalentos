@@ -11,7 +11,7 @@ import { ErrorState } from '../components/ErrorState';
 import { LoadingState } from '../components/LoadingState';
 import { PoolResultCard } from '../components/PoolResultCard';
 import { VoteCard } from '../components/VoteCard';
-import { formatCountdown, formatDeadline, formatMON, poolStatusColor, poolStatusLabel } from '../lib/format';
+import { formatDeadline, formatMON, poolStatusColor, poolStatusLabel, shortHash } from '../lib/format';
 import {
   useArtist,
   useClaimReward,
@@ -120,6 +120,13 @@ export function PoolPage() {
   const finalizeBusy = finalizePending || finalizeConfirming;
   const claimBusy = claimPending || claimConfirming;
   const reclaimBusy = reclaimPending || reclaimConfirming;
+  const isSettled = pool.status === 2 || pool.status === 3 || pool.status === 4;
+  const previewSettled = pool.status === 1 && voteClosed && simOffset > 0n;
+  const showSettledLayout = isSettled || previewSettled;
+  const settledStatus = isSettled ? pool.status : preview.status;
+  const deadlineYear = new Date(Number(pool.deadline) * 1000).getFullYear();
+  const pioneerChip =
+    pool.supportersAtOpen === 1 ? '1 pionero' : `${pool.supportersAtOpen} pioneros`;
 
   async function refresh() {
     void chain.refetch();
@@ -198,23 +205,63 @@ export function PoolPage() {
   }
 
   return (
-    <section className="space-y-6 pt-4">
-      <header className="space-y-2">
-        <p className="text-sm text-tierra-700">Pozo de recompensa</p>
-        <h1 className="font-serif text-3xl text-tierra-900">
-          <span className={`inline-block rounded-full px-3 py-1 text-xl ${poolStatusColor(pool.status)}`}>
-            {poolStatusLabel(pool.status)}
-          </span>
-        </h1>
-      </header>
+    <section className="flex flex-col gap-6 pb-6 pt-3 lg:gap-8 lg:pb-10 lg:pt-6">
+      <h1 className="font-serif text-xl italic text-on-surface lg:text-2xl">Detalle del pozo</h1>
 
-      <p className="font-serif text-4xl text-tierra-900">{formatMON(pool.amount)} MON</p>
-
-      <p className="text-base text-tierra-900">
-        {description ?? (profileQuery.isLoading ? 'Buscando la descripción…' : 'Sin descripción')}
-      </p>
-
-      <p className="text-sm text-tierra-700">Fecha límite: {formatDeadline(pool.deadline)}</p>
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10">
+      <div className="flex flex-col gap-6 lg:col-span-5">
+      {showSettledLayout ? (
+        <SettledPoolHeader
+          poolId={poolId}
+          status={settledStatus}
+          year={deadlineYear}
+          description={
+            description ?? (profileQuery.isLoading ? 'Buscando la descripción…' : 'Sin descripción')
+          }
+          amount={pool.amount}
+          pioneerChip={pioneerChip}
+        />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[0.6875rem] tracking-tight text-comment">
+              Registro #{poolId.toString().padStart(4, '0')}
+            </span>
+            <span
+              className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 font-mono text-[0.6875rem] uppercase tracking-wider ${poolStatusColor(pool.status)}`}
+            >
+              {poolStatusLabel(pool.status)}
+            </span>
+          </div>
+          <div className="font-mono text-[2.25rem] font-bold leading-none tracking-tight text-gold lg:text-5xl">
+            {formatMON(pool.amount)} MON
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-comment">
+              Pozo de recompensa
+            </p>
+            <span className="rounded bg-surface-container px-2 py-1 font-mono text-[0.6875rem] text-on-surface-variant">
+              {pioneerChip}
+            </span>
+          </div>
+          <h2 className="pt-1 font-serif text-[1.75rem] italic leading-tight text-on-surface lg:text-4xl">
+            {description ?? (profileQuery.isLoading ? 'Buscando la descripción…' : 'Sin descripción')}
+          </h2>
+          <p className="font-mono text-[0.6875rem] text-comment">
+            Cierre: {formatDeadline(pool.deadline)}
+          </p>
+          {pool.evidenceURI ? (
+            <a
+              href={pool.evidenceURI}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-[0.6875rem] text-tertiary hover:underline"
+            >
+              Ver evidencia →
+            </a>
+          ) : null}
+        </div>
+      )}
 
       {pool.status === 0 ? (
         canDeclare ? (
@@ -226,7 +273,7 @@ export function PoolPage() {
           />
         ) : canReclaimExpiredOpen ? (
           <div className="space-y-3">
-            <p className="text-sm text-tierra-700">
+            <p className="text-sm text-on-surface-variant">
               Se pasó la fecha límite y no se declaró el hito. Podés recuperar el pozo.
             </p>
             <ActionButton
@@ -237,18 +284,24 @@ export function PoolPage() {
             />
           </div>
         ) : deadlinePassed && isOwner && simOffset > 0n ? (
-          <p className="text-sm text-tierra-700">
+          <p className="text-sm text-on-surface-variant">
             Vista previa local: si se pasara la fecha límite, podrías recuperar el pozo. En la red
             todavía no venció.
           </p>
         ) : deadlinePassed ? (
-          <p className="text-sm text-tierra-700">Se pasó la fecha límite y no se declaró el hito.</p>
+          <p className="text-sm text-on-surface-variant">
+            Se pasó la fecha límite y no se declaró el hito.
+          </p>
         ) : (
-          <p className="text-sm text-tierra-700">Este pozo sigue abierto. Todavía no se declaró el hito.</p>
+          <p className="text-sm text-on-surface-variant">
+            Este pozo sigue abierto. Todavía no se declaró el hito.
+          </p>
         )
       ) : null}
+      </div>
 
-      {pool.status === 1 ? (
+      <div className="flex flex-col gap-6 lg:col-span-7">
+      {pool.status === 1 && !previewSettled ? (
         <div className="space-y-4">
           <VoteCard
             poolId={poolId}
@@ -267,23 +320,7 @@ export function PoolPage() {
               void refresh();
             }}
           />
-          {voteClosed && simOffset > 0n ? (
-            <div className="space-y-2 rounded-lg bg-tierra-50 p-4 text-sm text-tierra-900">
-              <p className="font-medium">Vista previa local</p>
-              <p>
-                En la red la votación sigue abierta. Si se cerrara ahora, el resultado sería:{' '}
-                <span className="font-medium">{preview.status === 2 ? 'aprobado' : 'rechazado'}</span>
-                {preview.reason === 'quorum'
-                  ? ' (no se llegó al quórum).'
-                  : preview.reason === 'majority'
-                    ? ' (no hubo mayoría a favor).'
-                    : '.'}
-              </p>
-              <p className="text-tierra-700">
-                Para cerrarla de verdad hay que esperar al {formatDeadline(pool.voteEnd)}
-              </p>
-            </div>
-          ) : voteClosed ? (
+          {voteClosed ? (
             <ActionButton
               label="Finalizar votación"
               onClick={() => void handleFinalize()}
@@ -291,32 +328,69 @@ export function PoolPage() {
               disabled={finalizeBusy}
             />
           ) : (
-            <p className="text-sm text-tierra-700">
-              La votación se cierra en {formatCountdown(pool.voteEnd, effectiveNow)}.
-            </p>
+            <div className="flex items-center justify-between rounded bg-surface-container-lowest p-3">
+              <span className="font-mono text-xs text-on-surface-variant">
+                El cierre definitivo se habilitará al expirar el plazo.
+              </span>
+              <span className="font-mono text-[0.625rem] uppercase tracking-wider text-comment">
+                En curso
+              </span>
+            </div>
           )}
         </div>
       ) : null}
 
-      {pool.status === 2 || pool.status === 3 || pool.status === 4 ? (
-        <PoolResultCard
-          poolId={poolId}
-          status={pool.status}
-          pool={{ amount: pool.amount, supportersAtOpen: pool.supportersAtOpen }}
-          isArtistOwner={isOwner}
-          isEligibleSupporter={isEligibleSupporter}
-          hasClaimed={Boolean(hasClaimedQuery.data)}
-          onClaimReward={() => void handleClaimReward()}
-          onReclaim={() => void handleReclaim()}
-          claimLoading={claimBusy}
-          reclaimLoading={reclaimBusy}
-        />
+      {showSettledLayout ? (
+        <>
+          <PoolResultCard
+            status={settledStatus}
+            pool={{
+              amount: pool.amount,
+              supportersAtOpen: pool.supportersAtOpen,
+              votesFor: pool.votesFor,
+              votesAgainst: pool.votesAgainst,
+              totalWeightAtOpen: pool.totalWeightAtOpen,
+            }}
+            isArtistOwner={isOwner}
+            isEligibleSupporter={isEligibleSupporter}
+            hasClaimed={Boolean(hasClaimedQuery.data)}
+            userRank={userRank}
+            userWeight={supporter && supporter.rank > 0 ? supporter.weight : undefined}
+            onClaimReward={() => void handleClaimReward()}
+            onReclaim={() => void handleReclaim()}
+            claimLoading={claimBusy}
+            reclaimLoading={reclaimBusy}
+            preview={previewSettled}
+          />
+          <div className="flex flex-col gap-2 rounded-xl bg-surface-container p-4">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[0.6875rem] uppercase text-comment">
+                Huella del hito
+              </span>
+              <span className="font-mono text-[0.6875rem] text-tertiary">En cadena</span>
+            </div>
+            <div className="flex items-center justify-between font-mono text-[0.6875rem] text-on-surface-variant">
+              <span>Hash</span>
+              <span className="text-on-surface">{shortHash(pool.milestoneHash)}</span>
+            </div>
+            {previewSettled ? (
+              <p className="font-mono text-[0.6875rem] text-comment">
+                Cierre real: {formatDeadline(pool.voteEnd)}
+              </p>
+            ) : null}
+          </div>
+        </>
       ) : null}
 
       {actionError ? <p className="text-sm text-vino-700">{actionError}</p> : null}
+      </div>
+      </div>
 
-      <Link to={`/artist/${pool.artistId.toString()}`} className="inline-block text-sm text-ocre-600 underline">
-        Volver al artista
+      <Link
+        to={`/artist/${pool.artistId.toString()}`}
+        className="inline-flex items-center justify-center gap-1.5 py-2 font-mono text-sm text-tertiary hover:underline lg:justify-start"
+      >
+        ← Volver al artista
       </Link>
 
       <DevTimeTravel />
@@ -336,4 +410,71 @@ function previewFinalize(pool: {
   const majorityMet = totalVotes > 0n && pool.votesFor * 10_000n > totalVotes * 5000n;
   if (quorumMet && majorityMet) return { status: 2, reason: null };
   return { status: 3, reason: quorumMet ? 'majority' : 'quorum' };
+}
+
+function SettledPoolHeader({
+  poolId,
+  status,
+  year,
+  description,
+  amount,
+  pioneerChip,
+}: {
+  poolId: bigint;
+  status: number;
+  year: number;
+  description: string;
+  amount: bigint;
+  pioneerChip: string;
+}) {
+  const approved = status === 2;
+  const rejected = status === 3;
+  const pill = approved
+    ? 'bg-[#1e2a1a] text-secondary'
+    : rejected
+      ? 'bg-[#201519] text-pink'
+      : 'bg-surface-container-high text-comment';
+  const dot = approved ? 'bg-secondary' : rejected ? 'bg-pink' : 'bg-comment';
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <span className="font-mono text-[0.6875rem] uppercase text-comment">
+            Registro #{poolId.toString().padStart(4, '0')}
+          </span>
+          <span className="h-1 w-1 rounded-full bg-comment" />
+          <span className="font-mono text-[0.6875rem] uppercase text-comment">
+            Salta, {year}
+          </span>
+        </div>
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 ${pill}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+          <span className="font-mono text-[0.6875rem] font-semibold uppercase tracking-wider">
+            {poolStatusLabel(status)}
+          </span>
+        </span>
+      </div>
+
+      <div className="relative flex flex-col gap-2 overflow-hidden rounded-xl bg-surface-container-low p-4 shadow-md">
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-comment">
+            Pozo de reconocimiento
+          </span>
+          <h2 className="font-serif text-[1.75rem] italic leading-tight text-on-surface lg:text-4xl">
+            {description}
+          </h2>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 pt-1">
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-xl font-bold text-gold">{formatMON(amount)} MON</span>
+            <span className="font-mono text-[0.6875rem] text-comment">resguardo total</span>
+          </div>
+          <span className="rounded bg-surface-container px-2 py-1 font-mono text-[0.6875rem] text-on-surface-variant">
+            {pioneerChip}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }

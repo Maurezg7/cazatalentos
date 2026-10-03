@@ -5,6 +5,11 @@ export function shortAddress(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+export function shortHash(hash: string): string {
+  if (hash.length < 12) return hash;
+  return `${hash.slice(0, 10)}…${hash.slice(-4)}`;
+}
+
 export function padRank(rank: number, total?: number): string {
   const padded = rank.toString().padStart(3, '0');
   return total !== undefined ? `Nº ${padded} de ${total}` : `Nº ${padded}`;
@@ -58,10 +63,11 @@ export function formatCountdown(targetUnixSeconds: bigint, nowUnixSeconds?: bigi
 }
 
 export function poolStatusColor(status: number): string {
-  if (status === 2) return 'bg-emerald-500/15 text-emerald-700';
+  if (status === 1) return 'bg-gold/15 text-gold';
+  if (status === 2) return 'bg-secondary/15 text-secondary';
   if (status === 3) return 'bg-vino-700/15 text-vino-700';
-  if (status === 4) return 'bg-tierra-100 text-tierra-700';
-  return 'bg-ocre-500/15 text-ocre-600';
+  if (status === 4) return 'bg-surface-container-highest text-comment';
+  return 'bg-primary-container/15 text-primary-container';
 }
 
 export function levelName(weight: number): string {
