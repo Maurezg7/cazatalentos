@@ -1,3 +1,7 @@
 # Documentación
 
-Esta carpeta reúne la documentación del proyecto. En la Fase 0 todavía no hay documentos de producto ni de contratos.
+Esta carpeta reúne la documentación del proyecto.
+
+| Documento | Contenido |
+|-----------|-----------|
+| [technical-decisions.md](./technical-decisions.md) | Decisiones de diseño de contratos y hallazgos de análisis estático aceptados |

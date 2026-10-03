@@ -14,6 +14,18 @@ fs_permissions = [{ access = "read", path = "./" }]
 [profile.ci]
 fuzz = { runs = 5000 }
 
+[invariant]
+runs = 256
+depth = 64
+fail_on_revert = false
+call_override = false
+dictionary_weight = 80
+shrink_run_limit = 5000
+
+[profile.ci.invariant]
+runs = 1024
+depth = 128
+
 [fmt]
 line_length = 100
 tab_width = 4
