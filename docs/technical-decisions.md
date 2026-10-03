@@ -38,6 +38,17 @@ Un pozo está activo si su status es `Open` o `Claimed`. Una vez finalizado (`Ap
 | Empate 50/50 | Se rechaza |
 | Quórum | `totalVotes >= (totalWeightAtOpen * QUORUM_BPS) / 10_000` (20% del peso elegible con los params de deploy) |
 
+## Off-chain metadata (`metadataURI`)
+
+On-chain, `Artist.metadataURI` apunta a datos editables fuera del contrato.
+
+| Caso | Valor | Comportamiento del frontend |
+|------|-------|-----------------------------|
+| Legacy (artista 1 actual) | String literal, p. ej. `"Los Copleros del Valle"` | Fallback: mostrar la string como nombre |
+| Fase 4+ | URL del backend, p. ej. `https://api.cazatalentos.xyz/artists/1` | Resolver JSON `{ name, photo, bio, links }` |
+
+**Por qué:** el nombre, la foto y la bio se pueden editar sin tocar el contrato. Los artistas ya registrados con string cruda siguen siendo válidos; el frontend debe soportar ambos formatos.
+
 ## Hallazgos de Slither aceptados (Low / Informational)
 
 | Hallazgo | Decisión |

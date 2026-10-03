@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { parseEther } from 'viem';
 import { useAccount, useBalance } from 'wagmi';
+import { fetchArtistProfile } from '../lib/api';
 import { ActionButton } from '../components/ActionButton';
 import { ArtistHeader } from '../components/ArtistHeader';
 import { BeliefCard } from '../components/BeliefCard';
@@ -52,6 +54,12 @@ export function ArtistPage() {
 
   const artist = artistRaw;
   const supporter = supporterRaw;
+  const profileQuery = useQuery({
+    queryKey: ['artist-profile', artistId?.toString()],
+    queryFn: () => fetchArtistProfile(Number(artistId)),
+    enabled: artistId !== undefined,
+  });
+  const profile = profileQuery.data ?? null;
 
   useEffect(() => {
     if (!isSuccess) return;
@@ -90,14 +98,37 @@ export function ArtistPage() {
     balance !== undefined &&
     balance.value < minStake + GAS_BUFFER;
 
+  const displayName = profile?.displayName ?? artist.metadataURI;
+  const linkEntries = profile?.links ? Object.entries(profile.links) : [];
+
   return (
     <section className="space-y-6 pt-4">
-      <ArtistHeader name={artist.metadataURI} supporterCount={artist.supporterCount} />
+      <ArtistHeader name={displayName} supporterCount={artist.supporterCount} />
+
+      {profile?.photo ? (
+        <img
+          src={profile.photo}
+          alt={displayName}
+          className="h-40 w-full rounded-lg object-cover"
+        />
+      ) : null}
+      {profile?.bio ? <p className="text-base text-tierra-700">{profile.bio}</p> : null}
+      {linkEntries.length > 0 ? (
+        <ul className="space-y-1 text-sm">
+          {linkEntries.map(([label, href]) => (
+            <li key={label}>
+              <a href={href} target="_blank" rel="noreferrer" className="text-ocre-600 underline">
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {hasBelief && supporter ? (
         <BeliefCard
           artistId={artistId}
-          artistName={artist.metadataURI}
+          artistName={displayName}
           supporter={supporter}
           totalSupporters={artist.supporterCount}
         />

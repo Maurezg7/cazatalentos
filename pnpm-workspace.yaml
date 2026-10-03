@@ -4,6 +4,10 @@ packages:
 allowBuilds:
   '@parcel/watcher': true
   '@prisma/engines': true
+  '@reown/appkit': true
+  bufferutil: true
   esbuild: true
+  keccak: true
   prisma: true
   unrs-resolver: true
+  utf-8-validate: true
