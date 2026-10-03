@@ -23,6 +23,7 @@ const envSchema = z.object({
   FAUCET_AMOUNT_WEI: z.string().regex(/^\d+$/).default('100000000000000000'),
   FAUCET_DAILY_LIMIT_PER_ADDRESS: z.coerce.number().int().positive().default(3),
   WEB_ORIGIN: z.string().url(),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

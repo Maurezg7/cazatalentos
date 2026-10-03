@@ -3,6 +3,7 @@ import { PrivyProvider } from '@privy-io/react-auth';
 import { WagmiProvider } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { monadTestnet } from '../lib/chain';
+import { ToastProvider } from '../lib/observability/toast';
 import { wagmiConfig } from '../lib/wagmi';
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -38,7 +39,9 @@ export function Providers({ children }: { children: ReactNode }) {
       }}
     >
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>
+        <WagmiProvider config={wagmiConfig}>
+          <ToastProvider>{children}</ToastProvider>
+        </WagmiProvider>
       </QueryClientProvider>
     </PrivyProvider>
   );

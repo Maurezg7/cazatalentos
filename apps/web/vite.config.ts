@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@cazatalentos/shared': fileURLToPath(new URL('../../packages/shared/src/index.ts', import.meta.url)),
     },
   },
   build: {
@@ -26,6 +27,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    globals: true,
     passWithNoTests: true,
   },
 });

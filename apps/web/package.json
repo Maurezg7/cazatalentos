@@ -20,7 +20,8 @@
     "react-router-dom": "^7.18.4",
     "viem": "^2.57.2",
     "wagmi": "^3.7.7",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "@cazatalentos/shared": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",

@@ -221,9 +221,7 @@ export function ArtistPage() {
                     : 'Depósito de respaldo + costo de red.'}
                 </p>
                 {signError ? (
-                  <p className="text-sm text-vino-700">
-                    No se pudo registrar la marca. Probá de nuevo en un momento.
-                  </p>
+                  <p className="text-sm text-vino-700">{signError.userMessage}</p>
                 ) : null}
                 {isSuccess ? (
                   <p className="text-sm text-secondary">Listo. Tu marca quedó registrada.</p>

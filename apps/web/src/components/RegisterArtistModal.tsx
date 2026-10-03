@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { parseEventLogs } from 'viem';
 import { usePublicClient } from 'wagmi';
 import { z } from 'zod';
+import { AppError } from '@cazatalentos/shared';
 import { CAZATALENTOS_ABI } from '../lib/contracts';
 import { useRegisterArtist } from '../lib/hooks';
 import { ActionButton } from './ActionButton';
@@ -14,31 +15,7 @@ const registerSchema = z.object({
 });
 
 function messageFromWriteError(error: unknown): string {
-  const parts: string[] = [];
-  if (error instanceof Error) {
-    parts.push(error.message);
-  }
-  if (error && typeof error === 'object') {
-    if ('shortMessage' in error && typeof error.shortMessage === 'string') {
-      parts.push(error.shortMessage);
-    }
-    if ('message' in error && typeof error.message === 'string') {
-      parts.push(error.message);
-    }
-  }
-  const text = parts.join(' ').toLowerCase();
-  if (text.includes('timed out') || text.includes('timeout')) {
-    return 'La transacción tarda más de lo normal. Recargá en un momento.';
-  }
-  if (text.includes('user rejected') || text.includes('rejected the request') || text.includes('denied')) {
-    return 'Cancelaste la firma. Tocá Crear perfil otra vez si querés seguir.';
-  }
-  if (text.includes('insufficient funds') || text.includes('exceeds the balance')) {
-    return 'No hay suficiente MON para el costo de red.';
-  }
-  if (text.includes('chain mismatch') || text.includes('wrong chain') || text.includes('unsupported chain')) {
-    return 'La red no coincide. Cambiá a Monad Testnet y probá de nuevo.';
-  }
+  if (error instanceof AppError) return error.userMessage;
   return 'No se pudo crear el perfil. Probá de nuevo en un momento.';
 }
 

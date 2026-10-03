@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { useAccount, useBlock, usePublicClient } from 'wagmi';
 import { fetchPool } from '../lib/api';
-import { CAZATALENTOS_ABI, CAZATALENTOS_ADDRESS } from '../lib/contracts';
 import { ActionButton } from '../components/ActionButton';
 import { DeclareMilestoneForm } from '../components/DeclareMilestoneForm';
 import { DevTimeTravel, readSimulatedOffset, TIME_TRAVEL_EVENT } from '../components/DevTimeTravel';
@@ -22,7 +21,7 @@ import {
   useReclaimPool,
   useSupporter,
 } from '../lib/hooks';
-import { isVotingStillOpenError } from '../lib/write-error';
+import { userFacingMessage } from '../lib/observability/decode-contract-error';
 
 function parsePoolId(raw: string | undefined): bigint | undefined {
   if (!raw || !/^\d+$/.test(raw)) return undefined;
@@ -141,38 +140,14 @@ export function PoolPage() {
     }
     setActionError(null);
     resetFinalize();
-    const stillOpenMessage =
-      'Todavía no se puede cerrar: la ventana de votación sigue abierta en la red.';
     try {
-      if (publicClient && address) {
-        try {
-          await publicClient.simulateContract({
-            address: CAZATALENTOS_ADDRESS,
-            abi: CAZATALENTOS_ABI,
-            functionName: 'finalize',
-            args: [resolvedPoolId],
-            account: address,
-          });
-        } catch (simulateError) {
-          setActionError(
-            isVotingStillOpenError(simulateError)
-              ? stillOpenMessage
-              : 'No se pudo cerrar la votación. Probá de nuevo.',
-          );
-          return;
-        }
-      }
       const hash = await finalize(resolvedPoolId);
       if (publicClient) {
         await publicClient.waitForTransactionReceipt({ hash });
       }
       await refresh();
-    } catch (error) {
-      if (isVotingStillOpenError(error)) {
-        setActionError(stillOpenMessage);
-        return;
-      }
-      setActionError('No se pudo cerrar la votación. Probá de nuevo.');
+    } catch (error: unknown) {
+      setActionError(userFacingMessage(error, 'No se pudo cerrar la votación. Probá de nuevo.'));
     }
   }
 
@@ -185,8 +160,8 @@ export function PoolPage() {
         await publicClient.waitForTransactionReceipt({ hash });
       }
       await refresh();
-    } catch {
-      setActionError('No se pudo reclamar. Probá de nuevo en un momento.');
+    } catch (error: unknown) {
+      setActionError(userFacingMessage(error, 'No se pudo reclamar. Probá de nuevo en un momento.'));
     }
   }
 
@@ -199,8 +174,8 @@ export function PoolPage() {
         await publicClient.waitForTransactionReceipt({ hash });
       }
       await refresh();
-    } catch {
-      setActionError('No se pudo recuperar el pozo. Probá de nuevo en un momento.');
+    } catch (error: unknown) {
+      setActionError(userFacingMessage(error, 'No se pudo recuperar el pozo. Probá de nuevo en un momento.'));
     }
   }
 

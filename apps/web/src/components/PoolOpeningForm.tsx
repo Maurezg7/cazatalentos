@@ -8,6 +8,9 @@ import { CAZATALENTOS_ABI } from '../lib/contracts';
 import { formatDeadline } from '../lib/format';
 import { useOpenPool } from '../lib/hooks';
 import { ActionButton } from './ActionButton';
+import { userFacingMessage } from '../lib/observability/decode-contract-error';
+import { log } from '../lib/observability/logger';
+import { getRequestId } from '../lib/observability/request-id';
 
 const MAX_WINDOW_SECONDS = 90 * 24 * 60 * 60;
 
@@ -75,7 +78,7 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
       });
       const poolId = logs[0]?.args.poolId;
       if (poolId === undefined) {
-        console.warn('PoolOpened event was not found in the receipt');
+        log.warn('pool_opened_event_missing', { layer: 'web', requestId: getRequestId() });
         setError('El pozo se abrió, pero no pudimos guardar la descripción.');
         return;
       }
@@ -89,8 +92,8 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
       }
       setCreatedPoolId(poolId);
       onSuccess?.(poolId);
-    } catch {
-      setError('No se pudo abrir el pozo. Probá de nuevo en un momento.');
+    } catch (error: unknown) {
+      setError(userFacingMessage(error, 'No se pudo abrir el pozo. Probá de nuevo en un momento.'));
     } finally {
       setSubmitting(false);
     }

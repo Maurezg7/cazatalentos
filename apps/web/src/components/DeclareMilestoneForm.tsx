@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePublicClient } from 'wagmi';
 import { z } from 'zod';
 import { useClaimMilestone } from '../lib/hooks';
+import { userFacingMessage } from '../lib/observability/decode-contract-error';
 import { ActionButton } from './ActionButton';
 
 const evidenceSchema = z.object({
@@ -39,8 +40,8 @@ export function DeclareMilestoneForm({ poolId, onSuccess }: DeclareMilestoneForm
       }
       setDone(true);
       onSuccess?.();
-    } catch {
-      setError('No se pudo declarar el hito. Probá de nuevo en un momento.');
+    } catch (error: unknown) {
+      setError(userFacingMessage(error, 'No se pudo declarar el hito. Probá de nuevo en un momento.'));
     } finally {
       setSubmitting(false);
     }

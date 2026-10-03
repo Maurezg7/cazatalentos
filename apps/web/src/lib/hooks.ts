@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  useAccount,
-  usePublicClient,
-  useReadContract,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from 'wagmi';
+import { useAccount, usePublicClient, useReadContract } from 'wagmi';
 import { createPublicClient, http, type Address } from 'viem';
 import { CAZATALENTOS_ABI, CAZATALENTOS_ADDRESS } from './contracts';
 import { monadTestnet } from './chain';
+import { log } from './observability/logger';
+import { useTx } from './observability/use-tx';
 
 let cachedMinStake: bigint | undefined;
 let minStakePromise: Promise<bigint> | undefined;
@@ -43,7 +39,12 @@ export function useMinStake() {
       .then((value) => {
         if (!cancelled) setMinStake(value);
       })
-      .catch(() => {
+      .catch((error: unknown) => {
+        log.warn('min_stake_read_failed', {
+          layer: 'web',
+          cause: error instanceof Error ? error.message : 'unknown',
+          hint: 'MIN_STAKE read failed. Check VITE_MONAD_RPC_URL.',
+        });
         if (!cancelled) setMinStake(undefined);
       });
     return () => {
@@ -83,21 +84,24 @@ export function useSupporter(artistId: bigint | undefined, supporter: Address | 
 }
 
 export function useSignBelief() {
-  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const tx = useTx();
 
   async function sign(artistId: bigint) {
     const minStake = await getMinStake();
-    return writeContractAsync({
-      address: CAZATALENTOS_ADDRESS,
-      abi: CAZATALENTOS_ABI,
-      functionName: 'signBelief',
-      args: [artistId],
-      value: minStake,
-    });
+    return tx.send({ functionName: 'signBelief', args: [artistId], value: minStake });
   }
 
-  return { sign, hash, isPending, isConfirming, isSuccess, error, reset };
+  return {
+    sign,
+    hash: tx.hash,
+    isPending: tx.isPending,
+    isConfirming: tx.isConfirming,
+    isSuccess: tx.isSuccess,
+    error: tx.error,
+    reset: tx.reset,
+    appError: tx.appError,
+    requestId: tx.requestId,
+  };
 }
 
 export function useAccountAddress(): Address | undefined {
@@ -106,19 +110,23 @@ export function useAccountAddress(): Address | undefined {
 }
 
 export function useRegisterArtist() {
-  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const tx = useTx();
 
   function register(metadataURI: string) {
-    return writeContractAsync({
-      address: CAZATALENTOS_ADDRESS,
-      abi: CAZATALENTOS_ABI,
-      functionName: 'registerArtist',
-      args: [metadataURI],
-    });
+    return tx.send({ functionName: 'registerArtist', args: [metadataURI] });
   }
 
-  return { register, hash, isPending, isConfirming, isSuccess, error, reset };
+  return {
+    register,
+    hash: tx.hash,
+    isPending: tx.isPending,
+    isConfirming: tx.isConfirming,
+    isSuccess: tx.isSuccess,
+    error: tx.error,
+    reset: tx.reset,
+    appError: tx.appError,
+    requestId: tx.requestId,
+  };
 }
 
 export function useRecentRegisteredArtist(owner: Address | undefined) {
@@ -147,8 +155,7 @@ export function useRecentRegisteredArtist(owner: Address | undefined) {
 }
 
 export function useOpenPool() {
-  const { writeContractAsync, data: hash, isPending } = useWriteContract();
-  const { data: receipt, isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const tx = useTx();
 
   function open(args: {
     artistId: bigint;
@@ -156,32 +163,41 @@ export function useOpenPool() {
     deadline: bigint;
     value: bigint;
   }) {
-    return writeContractAsync({
-      address: CAZATALENTOS_ADDRESS,
-      abi: CAZATALENTOS_ABI,
+    return tx.send({
       functionName: 'openPool',
       args: [args.artistId, args.milestoneHash, args.deadline],
       value: args.value,
     });
   }
 
-  return { open, hash, isPending, isConfirming, isSuccess, receipt };
+  return {
+    open,
+    hash: tx.hash,
+    isPending: tx.isPending,
+    isConfirming: tx.isConfirming,
+    isSuccess: tx.isSuccess,
+    receipt: undefined,
+    appError: tx.appError,
+    requestId: tx.requestId,
+  };
 }
 
 export function useClaimMilestone() {
-  const { writeContractAsync, data: hash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const tx = useTx();
 
   function claim(poolId: bigint, evidenceURI: string) {
-    return writeContractAsync({
-      address: CAZATALENTOS_ADDRESS,
-      abi: CAZATALENTOS_ABI,
-      functionName: 'claimMilestone',
-      args: [poolId, evidenceURI],
-    });
+    return tx.send({ functionName: 'claimMilestone', args: [poolId, evidenceURI] });
   }
 
-  return { claim, hash, isPending, isConfirming, isSuccess };
+  return {
+    claim,
+    hash: tx.hash,
+    isPending: tx.isPending,
+    isConfirming: tx.isConfirming,
+    isSuccess: tx.isSuccess,
+    appError: tx.appError,
+    requestId: tx.requestId,
+  };
 }
 
 const POOL_STATUSES = ['Open', 'Claimed', 'Approved', 'Rejected', 'Reclaimed'] as const;
@@ -241,67 +257,83 @@ export function useActivePoolsByArtist(artistId: bigint | undefined) {
 }
 
 export function useVote() {
-  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const tx = useTx();
 
   function vote(poolId: bigint, approve: boolean) {
-    return writeContractAsync({
-      address: CAZATALENTOS_ADDRESS,
-      abi: CAZATALENTOS_ABI,
-      functionName: 'vote',
-      args: [poolId, approve],
-    });
+    return tx.send({ functionName: 'vote', args: [poolId, approve] });
   }
 
-  return { vote, hash, isPending, isConfirming, isSuccess, error, reset };
+  return {
+    vote,
+    hash: tx.hash,
+    isPending: tx.isPending,
+    isConfirming: tx.isConfirming,
+    isSuccess: tx.isSuccess,
+    error: tx.error,
+    reset: tx.reset,
+    appError: tx.appError,
+    requestId: tx.requestId,
+  };
 }
 
 export function useFinalize() {
-  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const tx = useTx();
 
   function finalize(poolId: bigint) {
-    return writeContractAsync({
-      address: CAZATALENTOS_ADDRESS,
-      abi: CAZATALENTOS_ABI,
-      functionName: 'finalize',
-      args: [poolId],
-    });
+    return tx.send({ functionName: 'finalize', args: [poolId] });
   }
 
-  return { finalize, hash, isPending, isConfirming, isSuccess, error, reset };
+  return {
+    finalize,
+    hash: tx.hash,
+    isPending: tx.isPending,
+    isConfirming: tx.isConfirming,
+    isSuccess: tx.isSuccess,
+    error: tx.error,
+    reset: tx.reset,
+    appError: tx.appError,
+    requestId: tx.requestId,
+  };
 }
 
 export function useClaimReward() {
-  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const tx = useTx();
 
   function claim(poolId: bigint) {
-    return writeContractAsync({
-      address: CAZATALENTOS_ADDRESS,
-      abi: CAZATALENTOS_ABI,
-      functionName: 'claimReward',
-      args: [poolId],
-    });
+    return tx.send({ functionName: 'claimReward', args: [poolId] });
   }
 
-  return { claim, hash, isPending, isConfirming, isSuccess, error, reset };
+  return {
+    claim,
+    hash: tx.hash,
+    isPending: tx.isPending,
+    isConfirming: tx.isConfirming,
+    isSuccess: tx.isSuccess,
+    error: tx.error,
+    reset: tx.reset,
+    appError: tx.appError,
+    requestId: tx.requestId,
+  };
 }
 
 export function useReclaimPool() {
-  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const tx = useTx();
 
   function reclaim(poolId: bigint) {
-    return writeContractAsync({
-      address: CAZATALENTOS_ADDRESS,
-      abi: CAZATALENTOS_ABI,
-      functionName: 'reclaimPool',
-      args: [poolId],
-    });
+    return tx.send({ functionName: 'reclaimPool', args: [poolId] });
   }
 
-  return { reclaim, hash, isPending, isConfirming, isSuccess, error, reset };
+  return {
+    reclaim,
+    hash: tx.hash,
+    isPending: tx.isPending,
+    isConfirming: tx.isConfirming,
+    isSuccess: tx.isSuccess,
+    error: tx.error,
+    reset: tx.reset,
+    appError: tx.appError,
+    requestId: tx.requestId,
+  };
 }
 
 export function useHasVoted(poolId: bigint | undefined, supporter: Address | undefined) {

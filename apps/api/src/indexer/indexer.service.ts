@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, type PrismaClient } from '@prisma/client';
+import { AppError } from '@cazatalentos/shared';
 import {
   createPublicClient,
   http,
@@ -10,6 +11,8 @@ import {
   type PublicClient,
 } from 'viem';
 import { monadTestnet } from 'viem/chains';
+import { currentRequestId } from '../observability/request-context';
+import { withRpcRetry } from '../observability/rpc-retry';
 import { PrismaService } from '../prisma/prisma.service';
 
 const CURSOR_NAME = 'cazatalentos';
@@ -115,7 +118,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async status(): Promise<{ lastBlock: string; currentBlock: string; lag: string }> {
-    const currentBlock = await this.client.getBlockNumber();
+    const currentBlock = await withRpcRetry('status.getBlockNumber', () => this.client.getBlockNumber());
     const cursor = await this.prisma.indexerCursor.findUnique({ where: { name: CURSOR_NAME } });
     const lastBlock = cursor?.lastBlock ?? this.startBlock - 1n;
     const lag = currentBlock > lastBlock ? currentBlock - lastBlock : 0n;
@@ -154,8 +157,12 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       // This catch does not touch the cursor. runChunk advances it only after the chunk transaction commits.
       if (started) {
         this.consecutiveFailures += 1;
-        const message = error instanceof Error ? error.message : 'unknown indexer error';
-        this.logger.error(`Indexer tick failed: ${message}`);
+        if (error instanceof AppError) {
+          this.logger.error(error.toLog());
+        } else {
+          const message = error instanceof Error ? error.message : 'unknown indexer error';
+          this.logger.error(`Indexer tick failed: ${message}`);
+        }
         const waitMs = this.backoffMs(this.consecutiveFailures);
         if (waitMs > 0) {
           this.backoffUntil = Date.now() + waitMs;
@@ -189,12 +196,31 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
 
   private async runChunk(): Promise<void> {
     const cursor = await this.ensureCursor();
-    const currentBlock = await this.client.getBlockNumber();
+    const currentBlock = await withRpcRetry('getBlockNumber', () => this.client.getBlockNumber());
+    if (currentBlock < cursor.lastBlock) {
+      this.logger.warn({
+        code: 'INDEXER_LAG',
+        layer: 'indexer',
+        requestId: currentRequestId(),
+        lastBlock: cursor.lastBlock.toString(),
+        currentBlock: currentBlock.toString(),
+        hint: 'Chain head is behind the cursor. Possible reorg. Cursor is not rewound.',
+      });
+      return;
+    }
     if (currentBlock <= cursor.lastBlock) return;
 
     const lag = currentBlock - cursor.lastBlock;
     if (lag > this.lagWarningBlocks) {
-      this.logger.warn(`Indexer is behind by ${lag.toString()} blocks`);
+      this.logger.warn({
+        code: 'INDEXER_LAG',
+        layer: 'indexer',
+        requestId: currentRequestId(),
+        lastBlock: cursor.lastBlock.toString(),
+        currentBlock: currentBlock.toString(),
+        lag: lag.toString(),
+        hint: 'Indexer lag is high. Check RPC eth_getLogs limits and backoff.',
+      });
     }
 
     const fromBlock = cursor.lastBlock + 1n;
@@ -262,14 +288,16 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
     const counts: WriteCounts = { artists: 0, supporters: 0, pools: 0, votes: 0 };
     const range = { address: this.contract, fromBlock, toBlock } as const;
 
-    const artists = await this.client.getLogs({ ...range, event: artistRegisteredEvent });
+    const artists = await withRpcRetry('getLogs:ArtistRegistered', () =>
+      this.client.getLogs({ ...range, event: artistRegisteredEvent }),
+    );
     this.logger.log(`ArtistRegistered: ${artists.length}`);
     for (const log of artists) {
       const artistId = Number(log.args.artistId);
       const owner = log.args.owner;
       const uri = log.args.uri;
       if (owner === undefined || uri === undefined) {
-        throw new Error(`Undecoded ArtistRegistered at block ${log.blockNumber?.toString() ?? '?'}`);
+        this.decodeFail('ArtistRegistered', log);
       }
       logs.push({
         blockNumber: log.blockNumber,
@@ -298,7 +326,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const beliefs = await this.client.getLogs({ ...range, event: beliefSignedEvent });
+    const beliefs = await withRpcRetry('getLogs:BeliefSigned', () =>
+      this.client.getLogs({ ...range, event: beliefSignedEvent }),
+    );
     this.logger.log(`BeliefSigned: ${beliefs.length}`);
     for (const log of beliefs) {
       const artistId = Number(log.args.artistId);
@@ -306,7 +336,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       const rank = Number(log.args.rank);
       const weight = Number(log.args.weight);
       if (!address) {
-        throw new Error(`Undecoded BeliefSigned at block ${log.blockNumber?.toString() ?? '?'}`);
+        this.decodeFail('BeliefSigned', log);
       }
       logs.push({
         blockNumber: log.blockNumber,
@@ -326,7 +356,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const pools = await this.client.getLogs({ ...range, event: poolOpenedEvent });
+    const pools = await withRpcRetry('getLogs:PoolOpened', () =>
+      this.client.getLogs({ ...range, event: poolOpenedEvent }),
+    );
     this.logger.log(`PoolOpened: ${pools.length}`);
     for (const log of pools) {
       const poolId = Number(log.args.poolId);
@@ -335,7 +367,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       const milestoneHash = log.args.milestoneHash;
       const deadline = log.args.deadline;
       if (amount === undefined || milestoneHash === undefined || deadline === undefined) {
-        throw new Error(`Undecoded PoolOpened at block ${log.blockNumber?.toString() ?? '?'}`);
+        this.decodeFail('PoolOpened', log);
       }
       const snapshot = await this.readPoolSnapshot(BigInt(poolId));
       logs.push({
@@ -368,14 +400,16 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const claims = await this.client.getLogs({ ...range, event: milestoneClaimedEvent });
+    const claims = await withRpcRetry('getLogs:MilestoneClaimed', () =>
+      this.client.getLogs({ ...range, event: milestoneClaimedEvent }),
+    );
     this.logger.log(`MilestoneClaimed: ${claims.length}`);
     for (const log of claims) {
       const poolId = Number(log.args.poolId);
       const evidenceURI = log.args.evidenceURI ?? '';
       const voteEnd = log.args.voteEnd;
       if (voteEnd === undefined) {
-        throw new Error(`Undecoded MilestoneClaimed at block ${log.blockNumber?.toString() ?? '?'}`);
+        this.decodeFail('MilestoneClaimed', log);
       }
       logs.push({
         blockNumber: log.blockNumber,
@@ -394,7 +428,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const votes = await this.client.getLogs({ ...range, event: votedEvent });
+    const votes = await withRpcRetry('getLogs:Voted', () =>
+      this.client.getLogs({ ...range, event: votedEvent }),
+    );
     this.logger.log(`Voted: ${votes.length}`);
     for (const log of votes) {
       const poolId = Number(log.args.poolId);
@@ -402,7 +438,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       const approve = log.args.approve;
       const weight = log.args.weight;
       if (!address || approve === undefined || weight === undefined) {
-        throw new Error(`Undecoded Voted at block ${log.blockNumber?.toString() ?? '?'}`);
+        this.decodeFail('Voted', log);
       }
       logs.push({
         blockNumber: log.blockNumber,
@@ -418,7 +454,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const finals = await this.client.getLogs({ ...range, event: poolFinalizedEvent });
+    const finals = await withRpcRetry('getLogs:PoolFinalized', () =>
+      this.client.getLogs({ ...range, event: poolFinalizedEvent }),
+    );
     this.logger.log(`PoolFinalized: ${finals.length}`);
     for (const log of finals) {
       const poolId = Number(log.args.poolId);
@@ -440,7 +478,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const rewards = await this.client.getLogs({ ...range, event: rewardClaimedEvent });
+    const rewards = await withRpcRetry('getLogs:RewardClaimed', () =>
+      this.client.getLogs({ ...range, event: rewardClaimedEvent }),
+    );
     this.logger.log(`RewardClaimed: ${rewards.length}`);
     for (const log of rewards) {
       this.logger.log(
@@ -448,7 +488,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    const reclaimed = await this.client.getLogs({ ...range, event: poolReclaimedEvent });
+    const reclaimed = await withRpcRetry('getLogs:PoolReclaimed', () =>
+      this.client.getLogs({ ...range, event: poolReclaimedEvent }),
+    );
     this.logger.log(`PoolReclaimed: ${reclaimed.length}`);
     for (const log of reclaimed) {
       this.logger.log(
@@ -456,7 +498,9 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    const withdrawn = await this.client.getLogs({ ...range, event: stakeWithdrawnEvent });
+    const withdrawn = await withRpcRetry('getLogs:StakeWithdrawn', () =>
+      this.client.getLogs({ ...range, event: stakeWithdrawnEvent }),
+    );
     this.logger.log(`StakeWithdrawn: ${withdrawn.length}`);
     for (const log of withdrawn) {
       this.logger.log(
@@ -467,15 +511,37 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
     return { logs, counts };
   }
 
+  private decodeFail(
+    event: string,
+    log: { transactionHash?: `0x${string}` | null; logIndex?: number | null; blockNumber?: bigint | null },
+  ): never {
+    const mapped = AppError.fromCode(
+      'INDEXER_DECODE_FAILED',
+      'indexer',
+      {
+        event,
+        txHash: log.transactionHash,
+        logIndex: log.logIndex,
+        blockNumber: log.blockNumber?.toString(),
+      },
+      undefined,
+      currentRequestId(),
+    );
+    this.logger.error(mapped.toLog());
+    throw mapped;
+  }
+
   private async readPoolSnapshot(
     poolId: bigint,
   ): Promise<{ supportersAtOpen: number; totalWeightAtOpen: string }> {
-    const pool = await this.client.readContract({
-      address: this.contract,
-      abi: poolOfAbi,
-      functionName: 'poolOf',
-      args: [poolId],
-    });
+    const pool = await withRpcRetry(`readContract:poolOf:${poolId.toString()}`, () =>
+      this.client.readContract({
+        address: this.contract,
+        abi: poolOfAbi,
+        functionName: 'poolOf',
+        args: [poolId],
+      }),
+    );
     return {
       supportersAtOpen: Number(pool.supportersAtOpen),
       totalWeightAtOpen: pool.totalWeightAtOpen.toString(),

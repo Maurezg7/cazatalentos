@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePublicClient } from 'wagmi';
 import { formatCountdown } from '../lib/format';
 import { useVote } from '../lib/hooks';
+import { userFacingMessage } from '../lib/observability/decode-contract-error';
 
 const QUORUM_BPS = 2000n;
 
@@ -58,8 +59,8 @@ export function VoteCard({
         await publicClient.waitForTransactionReceipt({ hash });
       }
       onVoted?.();
-    } catch {
-      setError('No se pudo registrar tu voto. Probá de nuevo.');
+    } catch (error: unknown) {
+      setError(userFacingMessage(error, 'No se pudo registrar tu voto. Probá de nuevo.'));
     }
   }
 

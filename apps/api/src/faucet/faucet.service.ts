@@ -18,6 +18,7 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { monadTestnet } from 'viem/chains';
+import { currentRequestId } from '../observability/request-context';
 
 type ClaimWindow = {
   count: number;
@@ -93,7 +94,13 @@ export class FaucetService {
       ) {
         throw error;
       }
-      this.logger.error('Faucet send failed');
+      this.logger.error({
+        code: 'RPC_TIMEOUT',
+        layer: 'api',
+        requestId: currentRequestId(),
+        hint: 'Faucet RPC send failed. Check MONAD_RPC_URL and FAUCET_PRIVATE_KEY funding.',
+        cause: error instanceof Error ? error.message : 'unknown',
+      });
       throw new ServiceUnavailableException('Faucet transfer failed');
     }
   }

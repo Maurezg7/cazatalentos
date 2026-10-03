@@ -56,6 +56,8 @@ interface ICazatalentos {
     event PoolReclaimed(uint256 indexed poolId, address indexed artist, uint256 amount);
     event StakeWithdrawn(uint256 indexed artistId, address indexed supporter, uint256 amount);
 
+    /// @notice Custom errors (no require strings). Argument order is the deployed ABI:
+    /// id first, then address. Do not flip to (address, uint256) without a new deploy.
     /// @notice Artist id does not exist.
     error ArtistDoesNotExist(uint256 artistId);
     /// @notice Metadata URI must be non-empty.
