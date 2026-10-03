@@ -15,6 +15,10 @@ export const router = createBrowserRouter([
         lazy: () => import('./pages/ArtistPage').then((m) => ({ Component: m.ArtistPage })),
       },
       {
+        path: 'pool/:id',
+        lazy: () => import('./pages/PoolPage').then((m) => ({ Component: m.PoolPage })),
+      },
+      {
         path: '*',
         lazy: () => import('./pages/NotFoundPage').then((m) => ({ Component: m.NotFoundPage })),
       },

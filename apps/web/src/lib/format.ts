@@ -27,6 +27,26 @@ export function formatSignedAt(unixSeconds: bigint): string {
   });
 }
 
+export function formatDeadline(unixSeconds: bigint): string {
+  const date = new Date(Number(unixSeconds) * 1000);
+  return date.toLocaleDateString('es-AR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function daysUntil(unixSeconds: bigint): number {
+  const now = Math.floor(Date.now() / 1000);
+  return Math.ceil((Number(unixSeconds) - now) / 86400);
+}
+
+export function poolStatusLabel(status: number): string {
+  return ['Abierto', 'Hito declarado', 'Aprobado', 'Rechazado', 'Reclamado'][status] ?? 'Desconocido';
+}
+
 export function levelName(weight: number): string {
   if (weight >= 5) return 'Fundador';
   if (weight >= 3) return 'Pionero';

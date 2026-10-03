@@ -27,3 +27,9 @@ body {
 ::selection {
   background: rgba(200, 137, 47, 0.25);
 }
+
+/* Privy confirmation must sit above our forms, or the signature prompt stays hidden. */
+#privy-dialog,
+#privy-modal-content {
+  z-index: 99999 !important;
+}

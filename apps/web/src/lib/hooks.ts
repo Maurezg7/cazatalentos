@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   useAccount,
+  usePublicClient,
   useReadContract,
   useWaitForTransactionReceipt,
   useWriteContract,
@@ -93,4 +95,139 @@ export function useSignBelief() {
 export function useAccountAddress(): Address | undefined {
   const { address } = useAccount();
   return address;
+}
+
+export function useRegisterArtist() {
+  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function register(metadataURI: string) {
+    return writeContractAsync({
+      address: CAZATALENTOS_ADDRESS,
+      abi: CAZATALENTOS_ABI,
+      functionName: 'registerArtist',
+      args: [metadataURI],
+    });
+  }
+
+  return { register, hash, isPending, isConfirming, isSuccess, error, reset };
+}
+
+export function useRecentRegisteredArtist(owner: Address | undefined) {
+  const publicClient = usePublicClient();
+
+  return useQuery({
+    queryKey: ['recent-registered-artist', owner],
+    enabled: Boolean(owner && publicClient),
+    staleTime: 15_000,
+    queryFn: async (): Promise<bigint | null> => {
+      if (!publicClient || !owner) return null;
+      const toBlock = await publicClient.getBlockNumber();
+      const fromBlock = toBlock > 99n ? toBlock - 99n : 0n;
+      const logs = await publicClient.getContractEvents({
+        address: CAZATALENTOS_ADDRESS,
+        abi: CAZATALENTOS_ABI,
+        eventName: 'ArtistRegistered',
+        args: { owner },
+        fromBlock,
+        toBlock,
+      });
+      const last = logs.at(-1);
+      return last?.args.artistId ?? null;
+    },
+  });
+}
+
+export function useOpenPool() {
+  const { writeContractAsync, data: hash, isPending } = useWriteContract();
+  const { data: receipt, isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function open(args: {
+    artistId: bigint;
+    milestoneHash: `0x${string}`;
+    deadline: bigint;
+    value: bigint;
+  }) {
+    return writeContractAsync({
+      address: CAZATALENTOS_ADDRESS,
+      abi: CAZATALENTOS_ABI,
+      functionName: 'openPool',
+      args: [args.artistId, args.milestoneHash, args.deadline],
+      value: args.value,
+    });
+  }
+
+  return { open, hash, isPending, isConfirming, isSuccess, receipt };
+}
+
+export function useClaimMilestone() {
+  const { writeContractAsync, data: hash, isPending } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function claim(poolId: bigint, evidenceURI: string) {
+    return writeContractAsync({
+      address: CAZATALENTOS_ADDRESS,
+      abi: CAZATALENTOS_ABI,
+      functionName: 'claimMilestone',
+      args: [poolId, evidenceURI],
+    });
+  }
+
+  return { claim, hash, isPending, isConfirming, isSuccess };
+}
+
+const POOL_STATUSES = ['Open', 'Claimed', 'Approved', 'Rejected', 'Reclaimed'] as const;
+
+export type OnChainPool = {
+  artistId: bigint;
+  amount: bigint;
+  milestoneHash: `0x${string}`;
+  deadline: bigint;
+  voteEnd: bigint;
+  votesFor: bigint;
+  votesAgainst: bigint;
+  supportersAtOpen: number;
+  totalWeightAtOpen: bigint;
+  status: number;
+  statusName: (typeof POOL_STATUSES)[number];
+  evidenceURI: string;
+};
+
+export function usePool(poolId: bigint | undefined) {
+  const query = useReadContract({
+    address: CAZATALENTOS_ADDRESS,
+    abi: CAZATALENTOS_ABI,
+    functionName: 'poolOf',
+    args: poolId !== undefined ? ([poolId] as const) : undefined,
+    query: { enabled: poolId !== undefined },
+  });
+
+  const pool: OnChainPool | undefined = query.data
+    ? {
+        artistId: query.data.artistId,
+        amount: query.data.amount,
+        milestoneHash: query.data.milestoneHash,
+        deadline: query.data.deadline,
+        voteEnd: query.data.voteEnd,
+        votesFor: query.data.votesFor,
+        votesAgainst: query.data.votesAgainst,
+        supportersAtOpen: Number(query.data.supportersAtOpen),
+        totalWeightAtOpen: query.data.totalWeightAtOpen,
+        status: Number(query.data.status),
+        statusName: POOL_STATUSES[Number(query.data.status)] ?? 'Open',
+        evidenceURI: query.data.evidenceURI,
+      }
+    : undefined;
+
+  return { ...query, pool };
+}
+
+export function useActivePoolsByArtist(artistId: bigint | undefined) {
+  return useReadContract({
+    address: CAZATALENTOS_ADDRESS,
+    abi: CAZATALENTOS_ABI,
+    functionName: 'activePoolsByArtist',
+    args: artistId !== undefined ? ([artistId] as const) : undefined,
+    query: { enabled: artistId !== undefined },
+  });
 }
