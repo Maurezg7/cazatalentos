@@ -8,6 +8,7 @@ import { validateEnv } from './config/env.validation';
 import { FaucetModule } from './faucet/faucet.module';
 import { HealthModule } from './health/health.module';
 import { IndexerModule } from './indexer/indexer.module';
+import { PoolsModule } from './pools/pools.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     IndexerModule,
     ArtistsModule,
+    PoolsModule,
     FaucetModule,
     HealthModule,
   ],

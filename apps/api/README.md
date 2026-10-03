@@ -34,6 +34,10 @@ curl http://localhost:3001/api/health
 curl -X POST http://localhost:3001/api/indexer/sync
 curl http://localhost:3001/api/artists/1
 curl "http://localhost:3001/api/artists/1/supporters?limit=50&offset=0"
+curl http://localhost:3001/api/artists/1/pools
+curl http://localhost:3001/api/pools/1
 ```
+
+`POST /api/pools/register` guarda la descripción del hito. En testnet esos endpoints no piden autenticación: el contrato igual exige que solo el dueño del artista abra el pozo.
 
 El faucet (`POST /api/faucet/request`) responde 503 si `FAUCET_PRIVATE_KEY` está vacío. La clave es solo de testnet y no se loguea.
