@@ -60,3 +60,6 @@ sessions_mo/
 # Coverage artifacts
 lcov.info
 coverage/
+apps/web/.env
+apps/api/.env
+apps/api/.env

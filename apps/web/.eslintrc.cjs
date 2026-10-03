@@ -18,7 +18,7 @@ module.exports = {
     browser: true,
     es2022: true,
   },
-  ignorePatterns: ['dist', 'node_modules'],
+  ignorePatterns: ['dist', 'node_modules', 'src/contracts/*.json'],
   rules: {
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/consistent-type-imports': 'error',
