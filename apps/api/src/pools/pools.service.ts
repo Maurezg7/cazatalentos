@@ -5,6 +5,13 @@ const POOL_STATUSES = ['Open', 'Claimed', 'Approved', 'Rejected', 'Reclaimed'] a
 
 export type PoolStatusName = (typeof POOL_STATUSES)[number];
 
+export type PoolVoteView = {
+  address: string;
+  approve: boolean;
+  weight: string;
+  votedAt: string;
+};
+
 export type PoolView = {
   id: number;
   artistId: number;
@@ -17,6 +24,7 @@ export type PoolView = {
   status: PoolStatusName;
   evidenceURI: string | null;
   milestoneDescription: string | null;
+  votes?: PoolVoteView[];
 };
 
 const STUB_HASH = `0x${'0'.repeat(64)}`;
@@ -67,12 +75,24 @@ export class PoolsService {
   async getPool(id: number): Promise<PoolView & { artist: { id: number; owner: string; metadataURI: string } }> {
     const pool = await this.prisma.pool.findUnique({
       where: { id },
-      include: { artist: { select: { id: true, owner: true, metadataURI: true } } },
+      include: {
+        votes: { orderBy: { votedAt: 'asc' } },
+        artist: { select: { id: true, owner: true, metadataURI: true } },
+      },
     });
     if (!pool) {
       throw new NotFoundException();
     }
-    return { ...toPoolView(pool), artist: pool.artist };
+    return {
+      ...toPoolView(pool),
+      artist: pool.artist,
+      votes: pool.votes.map((vote) => ({
+        address: vote.address,
+        approve: vote.approve,
+        weight: vote.weight,
+        votedAt: vote.votedAt.toISOString(),
+      })),
+    };
   }
 
   async getArtistPools(artistId: number, status?: PoolStatusName): Promise<PoolView[]> {
