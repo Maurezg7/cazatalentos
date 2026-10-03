@@ -1,0 +1,19 @@
+{
+  "name": "cazatalentos",
+  "private": true,
+  "packageManager": "pnpm@12.8.1",
+  "scripts": {
+    "lint": "pnpm --filter @cazatalentos/web lint && pnpm --filter @cazatalentos/api lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "eslint": "^10.11.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.9"
+  }
+}
