@@ -47,6 +47,23 @@ export function poolStatusLabel(status: number): string {
   return ['Abierto', 'Hito declarado', 'Aprobado', 'Rechazado', 'Reclamado'][status] ?? 'Desconocido';
 }
 
+export function formatCountdown(targetUnixSeconds: bigint, nowUnixSeconds?: bigint): string {
+  const now = nowUnixSeconds !== undefined ? Number(nowUnixSeconds) : Math.floor(Date.now() / 1000);
+  const remaining = Number(targetUnixSeconds) - now;
+  if (remaining <= 0) return 'Cerrada';
+  const hours = Math.floor(remaining / 3600);
+  const minutes = Math.max(0, Math.floor((remaining % 3600) / 60));
+  if (hours < 1) return `${minutes}m`;
+  return `${hours}h ${minutes}m`;
+}
+
+export function poolStatusColor(status: number): string {
+  if (status === 2) return 'bg-emerald-500/15 text-emerald-700';
+  if (status === 3) return 'bg-vino-700/15 text-vino-700';
+  if (status === 4) return 'bg-tierra-100 text-tierra-700';
+  return 'bg-ocre-500/15 text-ocre-600';
+}
+
 export function levelName(weight: number): string {
   if (weight >= 5) return 'Fundador';
   if (weight >= 3) return 'Pionero';

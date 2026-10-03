@@ -231,3 +231,87 @@ export function useActivePoolsByArtist(artistId: bigint | undefined) {
     query: { enabled: artistId !== undefined },
   });
 }
+
+export function useVote() {
+  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function vote(poolId: bigint, approve: boolean) {
+    return writeContractAsync({
+      address: CAZATALENTOS_ADDRESS,
+      abi: CAZATALENTOS_ABI,
+      functionName: 'vote',
+      args: [poolId, approve],
+    });
+  }
+
+  return { vote, hash, isPending, isConfirming, isSuccess, error, reset };
+}
+
+export function useFinalize() {
+  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function finalize(poolId: bigint) {
+    return writeContractAsync({
+      address: CAZATALENTOS_ADDRESS,
+      abi: CAZATALENTOS_ABI,
+      functionName: 'finalize',
+      args: [poolId],
+    });
+  }
+
+  return { finalize, hash, isPending, isConfirming, isSuccess, error, reset };
+}
+
+export function useClaimReward() {
+  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function claim(poolId: bigint) {
+    return writeContractAsync({
+      address: CAZATALENTOS_ADDRESS,
+      abi: CAZATALENTOS_ABI,
+      functionName: 'claimReward',
+      args: [poolId],
+    });
+  }
+
+  return { claim, hash, isPending, isConfirming, isSuccess, error, reset };
+}
+
+export function useReclaimPool() {
+  const { writeContractAsync, data: hash, isPending, error, reset } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+  function reclaim(poolId: bigint) {
+    return writeContractAsync({
+      address: CAZATALENTOS_ADDRESS,
+      abi: CAZATALENTOS_ABI,
+      functionName: 'reclaimPool',
+      args: [poolId],
+    });
+  }
+
+  return { reclaim, hash, isPending, isConfirming, isSuccess, error, reset };
+}
+
+export function useHasVoted(poolId: bigint | undefined, supporter: Address | undefined) {
+  return useReadContract({
+    address: CAZATALENTOS_ADDRESS,
+    abi: CAZATALENTOS_ABI,
+    functionName: 'hasVoted',
+    args: poolId !== undefined && supporter ? ([poolId, supporter] as const) : undefined,
+    query: { enabled: poolId !== undefined && supporter !== undefined },
+  });
+}
+
+export function useHasClaimed(poolId: bigint | undefined, supporter: Address | undefined) {
+  return useReadContract({
+    address: CAZATALENTOS_ADDRESS,
+    abi: CAZATALENTOS_ABI,
+    functionName: 'hasClaimed',
+    args: poolId !== undefined && supporter ? ([poolId, supporter] as const) : undefined,
+    query: { enabled: poolId !== undefined && supporter !== undefined },
+  });
+}

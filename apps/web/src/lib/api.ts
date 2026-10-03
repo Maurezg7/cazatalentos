@@ -11,6 +11,13 @@ export type ArtistProfile = {
   links: Record<string, string> | null;
 };
 
+export type PoolVoteDto = {
+  address: string;
+  approve: boolean;
+  weight: string;
+  votedAt: string;
+};
+
 export type PoolDto = {
   id: number;
   artistId: number;
@@ -23,6 +30,7 @@ export type PoolDto = {
   status: 'Open' | 'Claimed' | 'Approved' | 'Rejected' | 'Reclaimed';
   evidenceURI: string | null;
   milestoneDescription: string | null;
+  votes?: PoolVoteDto[];
 };
 
 export async function fetchArtistProfile(id: number): Promise<ArtistProfile | null> {
