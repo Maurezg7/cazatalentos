@@ -31,7 +31,12 @@ const config: Config = {
         primary: {
           DEFAULT: '#ffbe82',
           container: '#fd971f',
+          fixed: '#ffdcc0',
         },
+        'on-primary-container': '#653700',
+        gold: '#E6DB74',
+        comment: '#75715E',
+        pink: '#F92672',
         secondary: {
           DEFAULT: '#a8e430',
           container: '#8ec703',

@@ -31,8 +31,8 @@ export function Providers({ children }: { children: ReactNode }) {
         supportedChains: [monadTestnet],
         defaultChain: monadTestnet,
         appearance: {
-          theme: 'light',
-          accentColor: '#c8892f',
+          theme: 'dark',
+          accentColor: '#fd971f',
           logo: undefined,
         },
       }}
