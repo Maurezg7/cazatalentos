@@ -54,6 +54,14 @@ export function useMinStake() {
   return minStake;
 }
 
+export function useTotalArtists() {
+  return useReadContract({
+    address: CAZATALENTOS_ADDRESS,
+    abi: CAZATALENTOS_ABI,
+    functionName: 'totalArtists',
+  });
+}
+
 export function useArtist(artistId: bigint | undefined) {
   return useReadContract({
     address: CAZATALENTOS_ADDRESS,

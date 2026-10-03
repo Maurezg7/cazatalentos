@@ -14,11 +14,11 @@ export function ActionButton({
   variant = 'primary',
 }: ActionButtonProps) {
   const base =
-    'w-full rounded-lg px-6 py-4 font-medium transition disabled:cursor-not-allowed disabled:opacity-50';
+    'w-full rounded-full px-6 py-4 font-medium transition disabled:cursor-not-allowed disabled:opacity-50';
   const styles =
     variant === 'primary'
-      ? 'bg-ocre-500 text-white hover:bg-ocre-600'
-      : 'border border-tierra-700 bg-transparent text-tierra-900';
+      ? 'bg-primary-container text-surface-container-lowest hover:bg-ocre-600'
+      : 'border border-outline bg-transparent text-on-surface';
 
   return (
     <button

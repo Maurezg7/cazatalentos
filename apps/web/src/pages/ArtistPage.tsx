@@ -283,7 +283,7 @@ export function ArtistPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="open-pool-title"
-            className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-xl bg-white p-5 shadow-lg"
+            className="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-xl bg-surface-container-high p-5 shadow-lg"
           >
             <div className="flex items-start justify-between gap-3">
               <h2 id="open-pool-title" className="font-serif text-2xl text-tierra-900">

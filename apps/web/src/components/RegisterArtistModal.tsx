@@ -152,7 +152,7 @@ export function RegisterArtistModal({ open, onClose, onRegistered }: RegisterArt
         role="dialog"
         aria-modal="true"
         aria-labelledby="register-artist-title"
-        className="w-full max-w-md space-y-4 rounded-xl bg-white p-5 shadow-lg"
+        className="w-full max-w-md space-y-4 rounded-xl bg-surface-container-high p-5 shadow-lg"
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id="register-artist-title" className="font-serif text-2xl text-tierra-900">

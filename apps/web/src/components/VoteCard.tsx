@@ -64,7 +64,7 @@ export function VoteCard({
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-tierra-100 bg-white p-4">
+    <div className="space-y-4 rounded-lg border border-tierra-100 bg-surface-container-high p-4">
       <div className="space-y-1">
         <h2 className="font-serif text-2xl text-tierra-900">Votación de pioneros</h2>
         <p className="text-sm text-tierra-700">

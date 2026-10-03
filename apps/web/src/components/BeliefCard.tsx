@@ -16,7 +16,7 @@ export function BeliefCard({
 }: BeliefCardProps) {
   return (
     <div className="space-y-3" data-artist-id={artistId.toString()}>
-      <article className="overflow-hidden rounded-xl border border-tierra-100 bg-white shadow-sm">
+      <article className="overflow-hidden rounded-xl border border-tierra-100 bg-surface-container-high shadow-sm">
         <div className="bg-ocre-500 px-4 py-1.5">
           <p className="text-center text-xs font-medium uppercase tracking-[0.25em] text-white">
             Cazatalentos

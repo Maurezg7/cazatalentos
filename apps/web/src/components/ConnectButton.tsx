@@ -3,6 +3,9 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useAccount } from 'wagmi';
 import { shortAddress } from '../lib/format';
 
+const pill =
+  'h-11 min-w-[44px] rounded-full bg-surface-container-high px-4 font-mono text-[0.6875rem] uppercase tracking-wide text-on-surface transition-colors hover:bg-surface-variant';
+
 export function ConnectButton() {
   const { ready, authenticated, login, logout } = usePrivy();
   const { address } = useAccount();
@@ -22,11 +25,7 @@ export function ConnectButton() {
 
   if (!ready) {
     return (
-      <button
-        type="button"
-        disabled
-        className="rounded-full border border-tierra-100 px-3 py-1.5 text-sm text-tierra-700 opacity-50"
-      >
+      <button type="button" disabled className={`${pill} opacity-50`}>
         Entrar
       </button>
     );
@@ -34,11 +33,7 @@ export function ConnectButton() {
 
   if (!authenticated || !address) {
     return (
-      <button
-        type="button"
-        onClick={() => login()}
-        className="rounded-full border border-tierra-700 px-3 py-1.5 text-sm text-tierra-900"
-      >
+      <button type="button" onClick={() => login()} className={pill}>
         Entrar
       </button>
     );
@@ -57,22 +52,18 @@ export function ConnectButton() {
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="rounded-full border border-tierra-100 bg-white px-3 py-1.5 font-mono text-xs text-tierra-900"
-      >
+      <button type="button" onClick={() => setOpen((value) => !value)} className={pill}>
         {shortAddress(address)}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-lg border border-tierra-100 bg-white shadow-sm">
+        <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-high shadow-sm">
           <button
             type="button"
             onClick={() => {
               void copyAddress();
             }}
-            className="block w-full px-3 py-2 text-left text-sm text-tierra-900 hover:bg-tierra-50"
+            className="block w-full px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-variant"
           >
             {copied ? 'Copiado' : 'Copiar dirección'}
           </button>
@@ -82,7 +73,7 @@ export function ConnectButton() {
               setOpen(false);
               void logout();
             }}
-            className="block w-full px-3 py-2 text-left text-sm text-tierra-900 hover:bg-tierra-50"
+            className="block w-full px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-variant"
           >
             Salir
           </button>

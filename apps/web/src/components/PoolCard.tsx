@@ -30,7 +30,7 @@ export function PoolCard({ pool, onClick }: PoolCardProps) {
 
   return (
     <article
-      className="space-y-3 rounded-xl border border-tierra-100 bg-white p-4"
+      className="space-y-3 rounded-xl border border-tierra-100 bg-surface-container-high p-4"
       onClick={onClick}
     >
       <div className="flex items-center justify-between gap-3">
