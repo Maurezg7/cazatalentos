@@ -11,6 +11,14 @@ export const router = createBrowserRouter([
         lazy: () => import('./pages/HomePage').then((m) => ({ Component: m.HomePage })),
       },
       {
+        path: 'como-funciona',
+        lazy: () => import('./pages/ComoFuncionaPage').then((m) => ({ Component: m.ComoFuncionaPage })),
+      },
+      {
+        path: 'explorar',
+        lazy: () => import('./pages/ExplorarPage').then((m) => ({ Component: m.ExplorarPage })),
+      },
+      {
         path: 'artist/:id',
         lazy: () => import('./pages/ArtistPage').then((m) => ({ Component: m.ArtistPage })),
       },

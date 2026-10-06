@@ -1,4 +1,5 @@
 import type { PoolDto } from '../lib/api';
+import { Icon } from './Icon';
 import { formatDeadline, formatMON, poolStatusLabel, shortHash } from '../lib/format';
 
 const STATUS_INDEX = {
@@ -66,7 +67,7 @@ export function PoolCard({ pool, onClick }: PoolCardProps) {
 
       <div className="mt-1 flex items-center justify-between border-t border-[#2d371f] pt-3">
         <span className="font-mono text-[0.6875rem] text-[#919e7e]">Abrí el expediente</span>
-        <span className="font-mono text-[0.6875rem] text-secondary">Ver pozo →</span>
+        <span className="inline-flex items-center gap-1 font-mono text-[0.6875rem] text-secondary">Ver pozo <Icon name="arrow-right" className="h-3 w-3" /></span>
       </div>
     </article>
   );

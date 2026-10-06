@@ -2,12 +2,15 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Newsreader', '"Ibarra Real Nova"', 'Georgia', 'serif'],
+        display: ['"Alfa Slab One"', 'Georgia', 'serif'],
+        body: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        serif: ['Newsreader', 'Georgia', 'serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
         tierra: { 50: '#13140f', 100: '#34352f', 700: '#a38d7b', 900: '#e4e3d9' },
@@ -49,6 +52,13 @@ const config: Config = {
           DEFAULT: '#a38d7b',
           variant: '#554335',
         },
+        terracotta: { DEFAULT: '#C8452D', dark: '#E8613F' },
+        ink: '#2B1B14',
+        paper: '#F4E9D3',
+        cream: '#F4E9D3',
+        card: { DEFAULT: '#FBF5E8', dark: '#2B2520' },
+        night: '#211C18',
+        ochre: '#D9A441',
       },
     },
   },

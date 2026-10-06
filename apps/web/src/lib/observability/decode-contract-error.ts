@@ -76,8 +76,7 @@ function walkRevert(error: unknown): { errorName: string; args: readonly unknown
       // ignore walk failures on non-viem objects
     }
   }
-  const text = flattenErrorText(error);
-  const named = /reverted with the following reason:\s*(\w+)/i.exec(text);
+  const named = /reverted with the following reason:\s*(\w+)/i.exec(rawErrorText(error));
   if (named?.[1]) return { errorName: named[1], args: [] };
   if (error && typeof error === 'object' && 'cause' in error) {
     return walkRevert((error as { cause: unknown }).cause);
@@ -125,10 +124,22 @@ function isRpcTimeout(error: unknown, text: string): boolean {
   return text.includes('timeout') || text.includes('timed out') || text.includes('aborted');
 }
 
+function rawErrorText(error: unknown): string {
+  const parts: string[] = [];
+  if (error instanceof Error) parts.push(error.message, error.name);
+  if (error && typeof error === 'object') {
+    if ('message' in error && typeof error.message === 'string') parts.push(error.message);
+    if ('shortMessage' in error && typeof error.shortMessage === 'string') parts.push(error.shortMessage);
+    if ('details' in error && typeof error.details === 'string') parts.push(error.details);
+  }
+  return parts.join(' ');
+}
+
 function flattenErrorText(error: unknown): string {
   const parts: string[] = [];
   if (error instanceof Error) parts.push(error.message, error.name);
   if (error && typeof error === 'object') {
+    if ('message' in error && typeof error.message === 'string') parts.push(error.message);
     if ('shortMessage' in error && typeof error.shortMessage === 'string') parts.push(error.shortMessage);
     if ('details' in error && typeof error.details === 'string') parts.push(error.details);
     if ('code' in error) parts.push(String(error.code));

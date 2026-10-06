@@ -9,6 +9,7 @@ cache/
 broadcast/
 coverage/
 *.log
+apps/api/uploads/
 .DS_Store
 
 # ============================================================

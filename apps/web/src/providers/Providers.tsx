@@ -1,19 +1,10 @@
 import { type ReactNode, useState } from 'react';
-import { PrivyProvider } from '@privy-io/react-auth';
-import { WagmiProvider } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { monadTestnet } from '../lib/chain';
 import { ToastProvider } from '../lib/observability/toast';
-import { wagmiConfig } from '../lib/wagmi';
+import { EntrySignalProvider } from '../lib/entry-signal';
+import { MotionProvider } from '../effects/MotionProvider';
 
 export function Providers({ children }: { children: ReactNode }) {
-  const appId = import.meta.env.VITE_PRIVY_APP_ID;
-  if (!appId) {
-    throw new Error(
-      'Falta VITE_PRIVY_APP_ID. Copiá el App ID (no el Client ID ni el App Secret) desde Privy Dashboard → App settings → Basics → API keys a apps/web/.env y reiniciá el dev server.',
-    );
-  }
-
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -22,27 +13,12 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <PrivyProvider
-      appId={appId}
-      config={{
-        loginMethods: ['email', 'google'],
-        embeddedWallets: {
-          ethereum: { createOnLogin: 'users-without-wallets' },
-        },
-        supportedChains: [monadTestnet],
-        defaultChain: monadTestnet,
-        appearance: {
-          theme: 'dark',
-          accentColor: '#fd971f',
-          logo: undefined,
-        },
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>
+    <QueryClientProvider client={queryClient}>
+      <EntrySignalProvider>
+        <MotionProvider>
           <ToastProvider>{children}</ToastProvider>
-        </WagmiProvider>
-      </QueryClientProvider>
-    </PrivyProvider>
+        </MotionProvider>
+      </EntrySignalProvider>
+    </QueryClientProvider>
   );
 }

@@ -1,435 +1,291 @@
-import { useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import { usePrivy } from '@privy-io/react-auth';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import type { ArtistProfile, PoolDto } from '../lib/api';
-import { fetchArtistPools, fetchArtistProfile } from '../lib/api';
-import { formatMON, poolStatusLabel } from '../lib/format';
-import { useTotalArtists } from '../lib/hooks';
-import { useEntrySheet } from '../components/EntrySheet';
-import { RegisterArtistModal } from '../components/RegisterArtistModal';
+import { fetchArtistPools, fetchArtistProfile, mediaUrl } from '../lib/api';
+import { HeroLanding } from '../landing/HeroLanding';
+import { FranjaConfianza } from '../landing/FranjaConfianza';
+import { PozosAbiertos } from '../landing/PozosAbiertos';
+import type { Pozo } from '../landing/pozo';
+import { readTotalArtists } from '../lib/public-read';
+import { useEntrySignal } from '../lib/entry-signal';
+import { Marquee } from '../effects/Marquee';
+import { ScrollReveal } from '../effects/ScrollReveal';
+import useEmblaCarousel from 'embla-carousel-react';
+import { Icon } from '../components/Icon';
 
-const FEATURED_IDS = [1, 2] as const;
-
-const STATUS_INDEX = {
-  Open: 0,
-  Claimed: 1,
-  Approved: 2,
-  Rejected: 3,
-  Reclaimed: 4,
-} as const;
-
-type FeaturedRow = {
-  id: number;
-  profile: ArtistProfile | null;
-  pools: PoolDto[];
+const DEMO: Record<number, { name: string; region: string; pioneers: number }> = {
+  101: { name: 'Los Hijos del Cerro', region: 'Salta Capital', pioneers: 312 },
+  102: { name: 'Zamba Lunar', region: 'Cafayate', pioneers: 148 },
+  103: { name: 'El Chango Nublado', region: 'Cachi', pioneers: 87 },
+  104: { name: 'Dúo Algarrobal', region: 'Rosario de Lerma', pioneers: 41 },
+  105: { name: 'Mate Eléctrico', region: 'Salta Capital', pioneers: 23 },
 };
+
+function demoImage(id: number, kind: 'photo' | 'cover'): string | null {
+  return DEMO[id] ? `/demo/${id}-${kind}.webp` : null;
+}
+
+const RegisterArtistModal = lazy(() =>
+  import('../components/RegisterArtistModal').then((m) => ({ default: m.RegisterArtistModal })),
+);
+
+const FEATURED_IDS = [101, 102, 103, 104, 105] as const;
+
+type FeaturedRow = { id: number; profile: ArtistProfile | null; pools: PoolDto[] };
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { ready, authenticated } = usePrivy();
-  const { openEntry } = useEntrySheet();
+  const [params, setParams] = useSearchParams();
+  const { authenticated } = useEntrySignal();
   const [registerOpen, setRegisterOpen] = useState(false);
-  const totalQuery = useTotalArtists();
-  const artistCount = totalQuery.data !== undefined ? Number(totalQuery.data) : undefined;
-
   const featuredQuery = useQuery({
     queryKey: ['home-featured', FEATURED_IDS],
-    queryFn: async () => {
-      const rows = await Promise.all(
-        FEATURED_IDS.map(async (id) => {
-          const profile = await fetchArtistProfile(id);
-          const pools = await fetchArtistPools(id);
-          return { id, profile, pools };
-        }),
-      );
-      return rows;
-    },
+    queryFn: async () =>
+      Promise.all(
+        FEATURED_IDS.map(async (id) => ({
+          id,
+          profile: await fetchArtistProfile(id),
+          pools: await fetchArtistPools(id),
+        })),
+      ),
   });
+  useQuery({ queryKey: ['total-artists'], queryFn: readTotalArtists, staleTime: 30_000 });
 
   const featured: FeaturedRow[] = FEATURED_IDS.map((id) => {
     const row = featuredQuery.data?.find((item) => item.id === id);
     return { id, profile: row?.profile ?? null, pools: row?.pools ?? [] };
-  });
-  const mauro = featured.find((row) => row.id === 2);
-  const mauroName = artistName(mauro, 'Mauro');
-  const mauroPioneers = mauro?.profile?.supporterCount;
-  const examplePool = mauro?.pools[0];
-  const exampleAmount =
-    examplePool !== undefined ? `${formatMON(BigInt(examplePool.amountWei))} MON` : null;
+  }).sort((left, right) => (right.profile?.promoRank ?? 0) - (left.profile?.promoRank ?? 0));
 
-  const pools = featured
-    .flatMap((row) =>
-      row.pools.map((pool) => ({
-        pool,
-        artistName: artistName(row, row.id === 1 ? 'Los Copleros' : 'Mauro'),
-      })),
-    )
-    .sort((left, right) => new Date(right.pool.deadline).getTime() - new Date(left.pool.deadline).getTime());
+  const pozos: Pozo[] = featured.flatMap((row) =>
+    row.pools.filter((pool) => pool.status === 'Open').map((pool) => ({
+      id: pool.id,
+      artistaId: row.id,
+      artista: artistName(row),
+      ciudad: row.profile?.region || 'Salta',
+      montoWei: BigInt(pool.amountWei || '0'),
+      metaWei: null,
+      metaTexto: pool.milestoneDescription || 'la meta del artista',
+      pioneros: pool.supportersAtOpen,
+      cupoMaximo: null,
+      cierraEn: new Date(pool.deadline).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' }),
+      portada: mediaUrl(row.profile?.cover) || demoImage(row.id, 'cover'),
+      estado: 'en_curso' as const,
+      abierto: true,
+    })),
+  );
+  const lead = featured[0];
 
-  function openRegister() {
-    if (!authenticated) {
-      openEntry();
-      return;
+  const showRegister = registerOpen || (params.get('alta') === '1' && authenticated);
+
+  function closeRegister() {
+    setRegisterOpen(false);
+    if (params.get('alta') === '1') {
+      const next = new URLSearchParams(params);
+      next.delete('alta');
+      setParams(next, { replace: true });
     }
-    setRegisterOpen(true);
   }
 
   return (
-    <section className="flex flex-col gap-6 pb-6 pt-4 lg:grid lg:grid-cols-12 lg:gap-x-10 lg:gap-y-8 lg:pb-10 lg:pt-8">
-      <FeaturedArtistCard
-        className="order-1 lg:col-span-6 lg:col-start-7 lg:row-start-1"
-        id={2}
-        name={mauroName}
-        photo={mauro?.profile?.photo ?? null}
-        pioneerCount={mauroPioneers}
-        loading={featuredQuery.isLoading}
+    <div className="flex min-w-0 flex-col gap-12 py-6 font-body text-ink dark:text-cream">
+      <HeroLanding
+        artista={lead ? artistName(lead) : 'Artista del NOA'}
+        ciudad={lead?.profile?.region || 'Salta'}
+        pioneros={lead?.profile?.supporterCount ?? 0}
+        pozosAbiertos={pozos.length}
+        onExplorar="/#artistas"
       />
+      <SponsoredCarousel rows={featured} loading={featuredQuery.isLoading} />
 
-      <section className="order-2 flex flex-col overflow-hidden rounded-xl bg-surface-container-low p-4 shadow-md lg:col-span-6 lg:col-start-1 lg:row-start-1 lg:p-6">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[0.6875rem] font-semibold uppercase tracking-wider text-primary">
-            Registro inalterable
-          </span>
-          <span className="font-mono text-[0.6875rem] text-outline">Provincia de Salta</span>
-        </div>
-        <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight text-on-surface lg:text-5xl">
-          Creíste primero.
-          <br />
-          <span className="italic text-primary">Quedó registrado.</span>
-        </h1>
-        <p className="mt-2 max-w-[46ch] text-sm leading-relaxed text-on-surface-variant lg:text-base">
-          Respaldá a un artista antes del aplauso masivo. Te queda una entrada numerada y, si el hito
-          se cumple, participás del pozo.
-        </p>
-
-        <div className="relative mt-4 overflow-hidden rounded-lg bg-surface-container p-4">
-          <div className="absolute bottom-0 left-0 top-0 w-1.5 bg-primary-container" />
-          <div className="flex items-start justify-between pl-2">
-            <div>
-              <span className="block font-mono text-[0.6875rem] uppercase tracking-wider text-outline">
-                Ejemplo de creyente temprano
-              </span>
-              <span className="font-serif text-xl font-medium text-on-surface">{mauroName}</span>
-            </div>
-            <div className="text-right">
-              <span className="block font-mono text-[0.6875rem] font-semibold uppercase text-secondary">
-                Primer pionero
-              </span>
-              <div className="font-mono text-lg font-bold tracking-tight text-primary">Nº 001</div>
-            </div>
-          </div>
-          <div className="relative my-3 flex items-center">
-            <div className="absolute -left-6 h-4 w-4 rounded-full bg-surface-container-low" />
-            <div className="mx-1 w-full border-t border-dashed border-outline/30" />
-            <div className="absolute -right-6 h-4 w-4 rounded-full bg-surface-container-low" />
-          </div>
-          <div className="flex items-center justify-between pl-2">
-            <div className="flex flex-col">
-              <span className="font-mono text-[0.6875rem] text-outline">Artista 2 · pozo 1</span>
-              <span className="text-xs font-medium text-on-surface">En votación</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="font-mono text-[0.6875rem] text-outline">En el pozo</span>
-              <span className="font-mono text-[0.6875rem] font-semibold text-secondary">
-                {exampleAmount ?? '0.100 MON'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Link
-            to="/artist/2"
-            className="flex h-11 items-center justify-center rounded bg-primary-container text-sm font-bold text-on-primary-container transition-transform active:scale-[0.98]"
-          >
-            Soy fan
-          </Link>
-          <button
-            type="button"
-            onClick={openRegister}
-            disabled={!ready}
-            className="flex h-11 items-center justify-center rounded bg-surface-container-high text-sm font-medium text-on-surface transition-colors hover:bg-surface-bright disabled:opacity-50"
-          >
-            Soy artista
-          </button>
-        </div>
-      </section>
-
-      <section className="order-3 flex flex-col gap-3 lg:col-span-6 lg:col-start-1 lg:row-start-2">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-xl text-on-surface">¿Cómo funciona?</h2>
-          <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-outline">
-            4 pasos
-          </span>
-        </div>
-        <ol className="grid grid-cols-2 gap-2">
-          <HowStep
-            n="01"
-            title="Descubrí un artista"
-            detail="Mirá quién está en el registro y escuchá antes de que se llene."
-          />
-          <HowStep
-            n="02"
-            title="Dejá tu marca"
-            detail="Un depósito chico de respaldo, atado a tu lugar en la fila."
-          />
-          <HowStep
-            n="03"
-            accent="secondary"
-            title="Entrada numerada"
-            detail="Tu rango queda anotado y no se puede borrar ni comprar."
-          />
-          <HowStep
-            n="04"
-            accent="secondary"
-            title="Cobrá si llega"
-            detail="Si el hito se aprueba, el pozo se reparte entre quienes llegaron primero."
-          />
+      <ScrollReveal>
+      <section id="como" className="flex flex-col gap-4">
+        <h2 className="font-display text-2xl uppercase tracking-wide">Cómo funciona</h2>
+        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Step n="01" title="Descubrí un artista" detail="Mirá el perfil y si hay un pozo abierto." />
+          <Step n="02" title="Marcá “Estuve antes”" detail="El contrato te da el siguiente número." />
+          <Step n="03" title="Recibí tu entrada" detail="El depósito queda en el contrato, aparte del pozo." />
+          <Step n="04" title="Se vota la meta" detail="Si se aprueba, reclamás una parte. Si no, no cobrás de ese pozo." />
         </ol>
+        <Link to="/como-funciona" className="landing-focus inline-flex h-11 items-center font-semibold underline">Ver ejemplo completo</Link>
+      </section>
+      </ScrollReveal>
+
+      <section id="artistas" className="flex flex-col gap-3">
+        <h2 className="font-display text-2xl uppercase tracking-wide">Artistas en ascenso</h2>
+        <div className="flex snap-x gap-3 overflow-x-auto pb-2">
+          {featured.map((row) => (
+            <Link key={row.id} to={`/artist/${row.id}`} className="ticket w-56 shrink-0 snap-start p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta">
+              <div className="relative h-36 overflow-hidden rounded-xl bg-ink/10">
+                <img src={mediaUrl(row.profile?.cover) || demoImage(row.id, 'cover') || ''} alt="" className="h-full w-full object-cover" />
+                <img src={mediaUrl(row.profile?.photo) || demoImage(row.id, 'photo') || ''} alt="" className="absolute bottom-2 left-2 h-12 w-12 rounded-full border-2 border-cream object-cover" />
+              </div>
+              <h3 className="mt-3 font-display text-xl uppercase leading-none">{artistName(row)}</h3>
+              <p className="mt-1 flex items-center gap-1 text-sm">
+                <Icon name="geo-alt" className="h-3.5 w-3.5" />
+                {row.profile?.region || DEMO[row.id]?.region || 'En el registro'}
+              </p>
+              <p className="mt-2 flex items-center gap-1 text-sm font-semibold">
+                <Icon name="people" className="h-3.5 w-3.5" />
+                {row.profile?.supporterCount || DEMO[row.id]?.pioneers || 0} pioneros
+              </p>
+              {row.profile && row.profile.promoRank > 0 ? (
+                <span className="mt-2 inline-flex text-xs font-bold uppercase tracking-wide text-ochre">En alza</span>
+              ) : null}
+            </Link>
+          ))}
+        </div>
       </section>
 
-      <section className="order-4 flex flex-col gap-3 lg:col-span-6 lg:col-start-7 lg:row-start-2">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="font-serif text-xl text-on-surface">Artistas en el registro</h2>
-          <span className="font-mono text-[0.6875rem] text-secondary">
-            {artistCount !== undefined
-              ? `${artistCount} ${artistCount === 1 ? 'artista' : 'artistas'}`
-              : 'Cargando…'}
-          </span>
+      <PozosAbiertos
+        pozos={pozos}
+        loading={featuredQuery.isLoading}
+        error={featuredQuery.isError}
+        onRetry={() => void featuredQuery.refetch()}
+      />
+      <FranjaConfianza />
+
+      <section aria-label="Últimos pioneros" className="ticket overflow-hidden px-4 py-3">
+        <Marquee text="Ana ya es pionero Nº 41 de Los Cuatro del Norte · Ana ya es pionero Nº 41 de Los Cuatro del Norte · " />
+      </section>
+
+      <footer className="flex flex-col gap-3 border-t border-dashed border-ink/30 pt-6 dark:border-cream/30">
+        <img src="/logo-light.svg" alt="Cazatalentos" className="h-8 w-auto self-start dark:hidden" />
+        <img src="/logo.svg" alt="Cazatalentos" className="hidden h-8 w-auto self-start dark:block" />
+        <div className="flex flex-wrap gap-4 text-sm font-semibold uppercase tracking-wide">
+          <a href="/#artistas" className="inline-flex h-11 items-center">Explorar</a>
+          <Link to="/como-funciona" className="inline-flex h-11 items-center">Cómo funciona</Link>
         </div>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:px-0">
-          {featured.map((row) => {
-            const fallback = row.id === 1 ? 'Los Copleros' : 'Mauro';
-            const name = artistName(row, fallback);
-            const pioneers = row.profile?.supporterCount;
+        <span className="ticket-stub h-4 w-40 text-ink/50 dark:text-cream/50" aria-hidden />
+        <p className="text-sm">Salta, República Argentina</p>
+      </footer>
+
+      {showRegister ? (
+        <Suspense fallback={null}>
+          <RegisterArtistModal
+            open={showRegister}
+            onClose={closeRegister}
+            onRegistered={(id) => {
+              closeRegister();
+              if (id !== undefined) void navigate(`/artist/${id.toString()}`);
+            }}
+          />
+        </Suspense>
+      ) : null}
+    </div>
+  );
+}
+
+function SponsoredCarousel({
+  rows,
+  loading,
+}: {
+  rows: FeaturedRow[];
+  loading: boolean;
+}) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ align: 'center', loop: rows.length > 1, skipSnaps: false });
+  const count = Math.max(rows.length, 1);
+
+  useEffect(() => {
+    if (paused || loading || rows.length === 0) return;
+    const timer = window.setInterval(() => {
+      if (emblaApi) emblaApi.scrollNext();
+      else setIndex((current) => (current + 1) % rows.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [paused, loading, rows.length, emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setIndex(emblaApi.selectedScrollSnap());
+    emblaApi.on('select', onSelect);
+    return () => {
+      emblaApi.off('select', onSelect);
+    };
+  }, [emblaApi]);
+
+  return (
+    <section
+      aria-roledescription="carrusel"
+      aria-label="Artistas patrocinados"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+    >
+      <div className="mb-3 flex items-end justify-between">
+        <h2 className="font-display text-sm uppercase tracking-[0.18em]">Patrocinados</h2>
+        <div className="hidden gap-2 lg:flex">
+          <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 dark:border-cream/30" aria-label="Anterior" onClick={() => (emblaApi ? emblaApi.scrollPrev() : setIndex((current) => (current - 1 + count) % count))}><Icon name="chevron-left" className="h-4 w-4" /></button>
+          <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-ink/20 dark:border-cream/30" aria-label="Siguiente" onClick={() => (emblaApi ? emblaApi.scrollNext() : setIndex((current) => (current + 1) % count))}><Icon name="chevron-right" className="h-4 w-4" /></button>
+        </div>
+      </div>
+      {loading ? (
+        <div className="h-44 animate-pulse rounded-2xl bg-ink/10 dark:bg-cream/10 sm:h-48" />
+      ) : rows.length === 0 ? (
+        <p className="ticket flex h-48 w-full items-center justify-center p-6 text-center font-display text-2xl uppercase">
+          Pronto hay artistas acá
+        </p>
+      ) : (
+        <div ref={emblaRef} className="overflow-hidden" onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
+        <div className="flex">
+          {rows.map((row, position) => {
+            const active = position === index % rows.length;
             return (
-              <Link
+              <article
                 key={row.id}
-                to={`/artist/${row.id}`}
-                className="flex w-[240px] shrink-0 flex-col overflow-hidden rounded-xl bg-surface-container-low shadow-md lg:w-auto"
+                className={`relative min-h-44 min-w-0 shrink-0 grow-0 basis-full overflow-hidden rounded-2xl text-cream sm:min-h-48 sm:basis-[85%] lg:basis-[28rem] ${active ? '' : 'lg:scale-[0.96] lg:opacity-80'}`}
               >
-                <div className="relative h-28 w-full bg-surface-container">
-                  {row.profile?.photo ? (
-                    <img src={row.profile.photo} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center font-serif text-3xl italic text-primary">
-                      {name.slice(0, 1).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent" />
-                </div>
-                <div className="flex flex-1 flex-col justify-between gap-2 p-3">
-                  <div>
-                    <h3 className="font-serif text-xl leading-tight text-on-surface">{name}</h3>
-                    <p className="text-xs text-on-surface-variant">
-                      {pioneers !== undefined
-                        ? `${pioneers} ${pioneers === 1 ? 'pionero' : 'pioneros'}`
-                        : `Artista ${row.id}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[0.6875rem] text-primary">
-                      #{String(row.id).padStart(3, '0')}
-                    </span>
-                    <span className="flex h-11 items-center rounded bg-primary-container px-3 font-mono text-[0.6875rem] font-bold text-on-primary-container">
-                      Ver
-                    </span>
+                <img
+                  src={mediaUrl(row.profile?.cover) || mediaUrl(row.profile?.photo) || demoImage(row.id, 'cover') || ''}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/15 to-transparent" />
+                <span className="absolute right-3 top-3 rounded-lg bg-cream px-2 py-1 text-[0.6875rem] font-bold tracking-wide text-ink">PATROCINADO</span>
+                <div className="relative flex min-h-44 flex-col justify-end gap-2 p-4 sm:min-h-48">
+                  <h3 className="font-display text-2xl uppercase leading-none sm:text-3xl">{artistName(row)}</h3>
+                  <p className="flex items-center gap-1 text-sm">
+                    <Icon name="geo-alt" className="h-3.5 w-3.5" />
+                    {row.profile?.region || DEMO[row.id]?.region || 'Argentina'} · {row.profile?.supporterCount || DEMO[row.id]?.pioneers || 0} pioneros
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Link to={`/artist/${row.id}`} className="inline-flex h-11 items-center rounded-xl bg-terracotta px-4 text-sm font-bold text-cream dark:bg-terracotta-dark">Ver perfil</Link>
+                    <Link to={`/artist/${row.id}`} className="inline-flex h-11 items-center rounded-xl border border-cream px-4 text-sm font-bold">Estuve antes</Link>
                   </div>
                 </div>
-              </Link>
+              </article>
             );
           })}
         </div>
-      </section>
-
-      {pools.length > 0 ? (
-        <section className="order-5 flex flex-col gap-3 lg:col-span-6 lg:col-start-7 lg:row-start-3">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-serif text-xl text-on-surface">Pozos</h2>
-            <span className="font-mono text-[0.6875rem] font-semibold uppercase text-secondary">
-              En curso
-            </span>
-          </div>
-          <div className="flex flex-col gap-3">
-            {pools.map(({ pool, artistName: name }) => (
-              <Link
-                key={pool.id}
-                to={`/pool/${pool.id}`}
-                className="flex flex-col gap-4 rounded-xl bg-surface-container-low p-4 shadow-md"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[0.6875rem] font-semibold uppercase text-primary">
-                        {poolStatusLabel(STATUS_INDEX[pool.status])}
-                      </span>
-                      <span className="font-mono text-[0.6875rem] text-outline">
-                        Pozo #{String(pool.id).padStart(3, '0')}
-                      </span>
-                    </div>
-                    <h3 className="font-serif text-xl text-on-surface">
-                      {pool.milestoneDescription ?? `Pozo ${pool.id}`}
-                    </h3>
-                    <p className="text-xs text-on-surface-variant">{name}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="font-mono text-lg font-bold text-primary">
-                      {formatMON(BigInt(pool.amountWei))} MON
-                    </div>
-                    <span className="font-mono text-[0.6875rem] text-outline">acumulado</span>
-                  </div>
-                </div>
-                <span className="flex h-11 items-center justify-center rounded bg-surface-container-high text-sm font-semibold text-on-surface">
-                  Ver el pozo
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="order-6 relative overflow-hidden rounded-xl bg-surface-container-low p-4 shadow-md lg:col-span-12 lg:p-6">
-        <span className="font-mono text-[0.6875rem] font-bold uppercase tracking-wider text-primary">
-          Espacio para músicos
-        </span>
-        <h2 className="mt-1 font-serif text-xl leading-tight text-on-surface">
-          ¿Tocás en peñas o festivales?
-        </h2>
-        <p className="mt-1 max-w-[52ch] text-sm leading-relaxed text-on-surface-variant">
-          Abrí tu perfil, contá tu próximo hito y dejá que tu gente respalde el despegue.
-        </p>
-        <button
-          type="button"
-          onClick={openRegister}
-          disabled={!ready}
-          className="mt-4 flex h-11 w-full items-center justify-center rounded bg-primary-container text-sm font-bold text-on-primary-container transition-transform active:scale-[0.99] disabled:opacity-50 lg:w-fit lg:px-8"
-        >
-          Crear mi perfil de artista
-        </button>
-      </section>
-
-      <div className="order-7 space-y-1 rounded-xl bg-surface-container-low p-4 text-center lg:col-span-12 lg:p-6">
-        <p className="font-serif text-xl italic text-on-surface">
-          “Bancaste primero. Que no te vengan a contar después.”
-        </p>
-        <p className="font-mono text-[0.6875rem] uppercase tracking-wider text-outline">
-          Salta, República Argentina
-        </p>
+        </div>
+      )}
+      <div className="mt-3 flex gap-2">
+        {rows.map((row, position) => (
+          <span key={row.id} className="h-1 flex-1 overflow-hidden rounded-full bg-ink/15 dark:bg-cream/20">
+            <span className={`block h-full bg-terracotta dark:bg-terracotta-dark ${position === index % Math.max(rows.length, 1) && !paused ? 'w-full transition-[width] duration-[6000ms]' : position < index ? 'w-full' : 'w-0'}`} />
+          </span>
+        ))}
       </div>
-
-      <RegisterArtistModal
-        open={registerOpen}
-        onClose={() => setRegisterOpen(false)}
-        onRegistered={(newArtistId) => {
-          setRegisterOpen(false);
-          if (newArtistId !== undefined) {
-            void navigate(`/artist/${newArtistId.toString()}`);
-          }
-        }}
-      />
     </section>
   );
 }
 
-function FeaturedArtistCard({
-  className,
-  id,
-  name,
-  photo,
-  pioneerCount,
-  loading,
-}: {
-  className?: string;
-  id: number;
-  name: string;
-  photo: string | null;
-  pioneerCount: number | undefined;
-  loading: boolean;
-}) {
-  const pioneers =
-    pioneerCount === undefined
-      ? null
-      : pioneerCount === 1
-        ? '1 pionero'
-        : `${pioneerCount} pioneros`;
-
+function Step({ n, title, detail }: { n: string; title: string; detail: string }) {
   return (
-    <article
-      className={`relative flex min-h-[280px] flex-col justify-end overflow-hidden rounded-xl bg-surface-container-low p-4 shadow-xl lg:min-h-[360px] ${className ?? ''}`}
-    >
-      {photo ? (
-        <img src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      ) : (
-        <div className="absolute inset-0 bg-[linear-gradient(160deg,#1b1c16_0%,#2a2a24_55%,#13140f_100%)]" />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/80 to-transparent" />
-
-      <div className="relative z-10 mb-2 self-start rounded-full bg-primary/20 px-2 py-0.5">
-        <span className="font-mono text-[0.6875rem] font-bold uppercase tracking-wider text-primary">
-          Destacado
-        </span>
-      </div>
-
-      <div className="relative z-10 space-y-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="font-serif text-2xl font-medium leading-tight text-on-surface lg:text-3xl">
-            {loading ? 'Cargando…' : name}
-          </h2>
-          {pioneers ? (
-            <span className="rounded bg-surface-container-highest/90 px-2 py-0.5 font-mono text-[0.6875rem] font-semibold text-primary">
-              {pioneers}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
-        <Link
-          to={`/artist/${id}`}
-          className="flex h-11 items-center justify-center rounded bg-primary-container text-sm font-bold text-on-primary-container transition-transform active:scale-[0.98]"
-        >
-          Ver perfil
-        </Link>
-        <Link
-          to={`/artist/${id}`}
-          className="flex h-11 items-center justify-center rounded bg-surface-container-high/90 text-sm font-medium text-on-surface"
-        >
-          Dejar mi marca
-        </Link>
-      </div>
-    </article>
-  );
-}
-
-function HowStep({
-  n,
-  title,
-  detail,
-  accent = 'primary',
-}: {
-  n: string;
-  title: string;
-  detail: string;
-  accent?: 'primary' | 'secondary';
-}) {
-  return (
-    <li className="flex flex-col justify-between gap-2 rounded-lg bg-surface-container-low p-3">
-      <span
-        className={`font-mono text-lg font-bold ${
-          accent === 'secondary' ? 'text-secondary' : 'text-primary'
-        }`}
-      >
-        {n}
-      </span>
+    <li className="ticket flex min-h-36 flex-col justify-between p-4">
+      <span className="font-display text-3xl text-terracotta dark:text-terracotta-dark">{n}</span>
       <div>
-        <h3 className="text-sm font-semibold leading-snug text-on-surface">{title}</h3>
-        <p className="mt-0.5 text-xs text-on-surface-variant">{detail}</p>
+        <h3 className="font-bold">{title}</h3>
+        <p className="mt-1 text-sm">{detail}</p>
       </div>
     </li>
   );
 }
 
-function artistName(row: FeaturedRow | undefined, fallback: string): string {
-  return row?.profile?.displayName || row?.profile?.metadataURI || fallback;
+function artistName(row: FeaturedRow): string {
+  const fromProfile = row.profile?.displayName || row.profile?.metadataURI;
+  if (fromProfile && !fromProfile.startsWith('http')) return fromProfile;
+  return DEMO[row.id]?.name || `Artista ${row.id}`;
 }

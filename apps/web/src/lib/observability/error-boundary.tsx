@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { AppError } from '@cazatalentos/shared';
+import type { AppError } from '@cazatalentos/shared';
 import { decodeContractError } from './decode-contract-error';
 import { log } from './logger';
 import { getRequestId } from './request-id';

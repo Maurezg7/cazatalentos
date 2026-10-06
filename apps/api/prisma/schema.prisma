@@ -16,11 +16,20 @@ model Artist {
 
   name  String? @db.Text
   photo String? @db.Text
-  bio   String? @db.Text
-  links Json?
+  cover String? @db.Text
+  bio     String? @db.Text
+  bioWash String? @db.VarChar(7)
+  bioInk  String? @db.VarChar(7)
+  nameFont String? @db.VarChar(16)
+  country   String? @db.VarChar(2)
+  region    String? @db.VarChar(40)
+  promoRank Int     @default(0)
+  links   Json?
 
   supporters Supporter[]
   pools      Pool[]
+  posts      ArtistPost[]
+  reels      ArtistReel[]
 
   @@map("artists")
 }
@@ -78,6 +87,43 @@ model Vote {
 
   @@unique([poolId, address])
   @@map("votes")
+}
+
+model ArtistReel {
+  id        Int      @id @default(autoincrement())
+  artistId  Int
+  caption     String  @default("") @db.VarChar(80)
+  overlayText String  @default("") @db.VarChar(60)
+  filter      String  @default("none") @db.VarChar(12)
+  textPlace   String  @default("middle") @db.VarChar(8)
+  fileName    String  @db.VarChar(64)
+  createdAt DateTime @default(now())
+
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@index([artistId, createdAt])
+  @@map("artist_reels")
+}
+
+model ArtistPost {
+  id        Int      @id @default(autoincrement())
+  artistId  Int
+  body      String   @db.VarChar(280)
+  media     String?  @db.Text
+  mediaKind String?  @db.VarChar(8)
+  createdAt DateTime @default(now())
+
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@index([artistId, createdAt])
+  @@map("artist_posts")
+}
+
+model UsedSignature {
+  signature String   @id @db.VarChar(132)
+  createdAt DateTime @default(now())
+
+  @@map("used_signatures")
 }
 
 model IndexerCursor {

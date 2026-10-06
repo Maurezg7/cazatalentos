@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAccount } from 'wagmi';
+import { fetchOwnedArtist } from '../lib/api';
+import { Icon } from './Icon';
 import { useEntrySheet } from './EntrySheet';
 import { shortAddress } from '../lib/format';
 import { useSupporter } from '../lib/hooks';
@@ -16,6 +19,11 @@ export function ConnectButton() {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const owned = useQuery({
+    queryKey: ['owned-artist', address],
+    queryFn: () => fetchOwnedArtist(address ?? ''),
+    enabled: Boolean(authenticated && address),
+  });
   const onMauro = useSupporter(authenticated ? 2n : undefined, address);
   const onCopleros = useSupporter(authenticated ? 1n : undefined, address);
 
@@ -36,10 +44,10 @@ export function ConnectButton() {
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, []);
 
-  if (!ready) {
+  if (!ready || (authenticated && !address)) {
     return (
-      <button type="button" disabled className={`${enterPill} opacity-50`}>
-        Entrar
+      <button type="button" disabled aria-busy="true" className={`${enterPill} opacity-70`}>
+        Cargando…
       </button>
     );
   }
@@ -76,12 +84,7 @@ export function ConnectButton() {
       >
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-secondary" />
         <span className="font-mono text-[0.6875rem] text-primary">{shortAddress(address)}</span>
-        <span
-          aria-hidden
-          className={`text-[10px] text-outline transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        >
-          ▾
-        </span>
+        <Icon name="chevron-down" className={`h-3 w-3 text-outline transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open ? (
@@ -108,6 +111,26 @@ export function ConnectButton() {
               </span>
             </div>
           ) : null}
+
+          {owned.data?.id ? (
+            <Link
+              to={`/artist/${owned.data.id}`}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center rounded-lg px-2 py-2 text-xs text-on-surface hover:bg-surface-container"
+            >
+              Mi perfil de artista
+            </Link>
+          ) : (
+            <Link
+              to="/?alta=1"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center rounded-lg px-2 py-2 text-xs text-on-surface hover:bg-surface-container"
+            >
+              Crear mi perfil de artista
+            </Link>
+          )}
 
           {pioneer ? (
             <>

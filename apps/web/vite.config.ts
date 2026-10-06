@@ -1,9 +1,10 @@
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), ...(process.env.ANALYZE === '1' ? [visualizer({ filename: 'dist/stats.html', gzipSize: true })] : [])],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -12,6 +13,12 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    modulePreload: false,
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/entry-[hash].js',
+      },
+    },
   },
   optimizeDeps: {
     include: ['@privy-io/react-auth', '@privy-io/wagmi'],

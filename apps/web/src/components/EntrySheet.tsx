@@ -11,6 +11,8 @@ import {
 } from 'react';
 import { useLoginWithEmail, useLoginWithOAuth, usePrivy } from '@privy-io/react-auth';
 import { z } from 'zod';
+import { Icon } from './Icon';
+import { useEntrySignal } from '../lib/entry-signal';
 
 const emailSchema = z.string().trim().email('Escribí un email válido.');
 const codeSchema = z
@@ -34,11 +36,15 @@ export function useEntrySheet(): EntrySheetContextValue {
 
 export function EntrySheetProvider({ children }: { children: ReactNode }) {
   const { authenticated } = usePrivy();
+  const { pendingEntry, consumePendingEntry, setAuthenticated } = useEntrySignal();
   const [wantOpen, setWantOpen] = useState(false);
-  if (authenticated && wantOpen) {
-    setWantOpen(false);
-  }
-  const open = wantOpen && !authenticated;
+  useEffect(() => {
+    setAuthenticated(authenticated);
+  }, [authenticated, setAuthenticated]);
+  useEffect(() => {
+    if (authenticated && pendingEntry) consumePendingEntry();
+  }, [authenticated, pendingEntry, consumePendingEntry]);
+  const open = (wantOpen || Boolean(pendingEntry)) && !authenticated;
 
   const value = useMemo(
     () => ({
@@ -50,7 +56,14 @@ export function EntrySheetProvider({ children }: { children: ReactNode }) {
   return (
     <EntrySheetContext.Provider value={value}>
       {children}
-      {open ? <EntrySheet onClose={() => setWantOpen(false)} /> : null}
+      {open ? (
+        <EntrySheet
+          onClose={() => {
+            setWantOpen(false);
+            if (pendingEntry) consumePendingEntry();
+          }}
+        />
+      ) : null}
     </EntrySheetContext.Provider>
   );
 }
@@ -153,35 +166,29 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
         type="button"
         aria-label="Cerrar"
         onClick={resetAndClose}
-        className="absolute inset-0 bg-surface-container-lowest/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="entry-title"
-        className="relative z-10 flex w-full max-w-[480px] flex-col rounded-t-2xl bg-surface px-6 pb-8 pt-3 shadow-2xl lg:max-w-md lg:rounded-2xl"
+        className="relative z-10 flex w-full max-w-[480px] flex-col rounded-t-[var(--radius-card,16px)] border border-[var(--line)] bg-[var(--panel)] px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-3 text-[var(--text)] shadow-2xl lg:max-w-md lg:rounded-[16px]"
       >
         <div className="flex justify-center pb-4 pt-1 lg:hidden">
-          <span className="h-1 w-10 rounded-full bg-surface-container-highest" />
+          <span className="h-1 w-10 rounded-full bg-[var(--line)]" />
         </div>
 
         {step === 'entry' ? (
           <>
             <div className="mb-5 flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-container" />
-                <span className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-outline">
-                  Registro · Salta · 2026
-                </span>
-              </div>
-              <h2
-                id="entry-title"
-                className="mt-1 font-serif text-4xl font-semibold italic tracking-tight text-on-surface"
-              >
+              <p className="m-0 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--gold)]">
+                Entrada al registro
+              </p>
+              <h2 id="entry-title" className="m-0 mt-1 font-display text-4xl uppercase tracking-wide">
                 Entrá al registro
               </h2>
-              <p className="text-sm text-on-surface-variant">Con tu email o Google. Sin vueltas.</p>
+              <p className="m-0 text-sm text-[var(--muted)]">Con tu email o Google.</p>
             </div>
 
             <div className="flex flex-col gap-4">
@@ -189,15 +196,15 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => void handleGoogle()}
                 disabled={googleBusy || sending}
-                className="flex w-full items-center justify-center gap-3 rounded-full bg-primary-container px-4 py-3.5 text-sm font-semibold text-surface-container-lowest shadow-md transition-transform active:scale-[0.99] disabled:opacity-50"
+                className="sun-btn landing-focus flex h-11 w-full items-center justify-center gap-3 px-4 text-sm font-semibold disabled:opacity-50"
               >
                 <GoogleMark />
                 <span>{googleBusy ? 'Entrando…' : 'Continuar con Google'}</span>
               </button>
 
               <div className="relative my-1 flex items-center justify-center">
-                <div className="h-px w-full bg-surface-container-high" />
-                <span className="absolute bg-surface px-3 font-mono text-[0.6875rem] lowercase tracking-wider text-outline">
+                <div className="h-px w-full bg-[var(--line)]" />
+                <span className="absolute bg-[var(--panel)] px-3 text-xs lowercase tracking-wider text-[var(--muted)]">
                   o con email
                 </span>
               </div>
@@ -210,15 +217,15 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="tu@correo.com"
-                  className="w-full rounded-xl bg-surface-container-high px-4 py-3 text-sm text-on-surface outline-none placeholder:text-outline focus:bg-surface-container-highest"
+                  className="landing-focus h-11 w-full rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-4 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
                 />
                 <button
                   type="submit"
                   disabled={sending || googleBusy}
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-surface-container-high px-4 py-3 text-sm font-medium text-primary transition-transform active:scale-[0.99] disabled:opacity-50"
+                  className="line-btn landing-focus flex h-11 w-full items-center justify-center gap-2 px-4 text-sm font-semibold disabled:opacity-50"
                 >
                   <span>{sending ? 'Enviando…' : 'Enviar código'}</span>
-                  <span aria-hidden>→</span>
+                  <Icon name="arrow-right" className="h-4 w-4" />
                 </button>
               </form>
             </div>
@@ -241,19 +248,19 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
         )}
 
         {step === 'entry' && error ? (
-          <p className="mt-3 text-center text-sm text-pink">{error}</p>
+          <p className="mt-3 text-center text-sm" role="alert">{error}</p>
         ) : null}
 
         {step === 'entry' ? (
           <>
-            <p className="pt-4 text-center font-mono text-[0.6875rem] uppercase leading-relaxed tracking-wider text-outline">
+            <p className="pt-4 text-center text-xs uppercase leading-relaxed tracking-wider text-[var(--muted)]">
               Al entrar se crea tu registro personal.
             </p>
             <div className="flex justify-center pb-1 pt-3">
               <button
                 type="button"
                 onClick={resetAndClose}
-                className="px-4 py-1 font-mono text-[0.6875rem] uppercase tracking-widest text-tertiary hover:underline"
+                className="landing-focus px-4 py-1 text-xs uppercase tracking-widest text-[var(--gold)] underline"
               >
                 Ahora no
               </button>
@@ -293,21 +300,18 @@ function CodeStep({
   return (
     <>
       <div className="mb-2 flex items-center justify-between">
-        <span className="font-mono text-[0.6875rem] uppercase tracking-widest text-outline">
-          Registro · Salta · 2026
+        <span className="text-xs font-semibold uppercase tracking-widest text-[var(--gold)]">
+          Código de entrada
         </span>
       </div>
 
-      <h2
-        id="entry-title"
-        className="mb-1 font-serif text-4xl font-semibold italic tracking-tight text-on-surface"
-      >
+      <h2 id="entry-title" className="mb-1 font-display text-4xl uppercase tracking-wide">
         Revisá tu correo
       </h2>
 
-      <p className="mb-6 text-sm leading-relaxed text-on-surface-variant">
+      <p className="mb-6 text-sm leading-relaxed text-[var(--muted)]">
         Te enviamos un código de 6 dígitos a{' '}
-        <span className="mt-1 inline-block select-all rounded-lg bg-surface-container-high px-2 py-0.5 font-mono text-sm text-primary-fixed">
+        <span className="mt-1 inline-block select-all rounded-lg bg-[var(--paper)] px-2 py-0.5 text-sm text-[var(--ink)]">
           {email}
         </span>
       </p>
@@ -331,15 +335,15 @@ function CodeStep({
               return (
                 <div
                   key={index}
-                  className={`flex h-14 items-center justify-center rounded-xl font-mono text-lg font-semibold shadow-inner ${
+                  className={`flex h-14 items-center justify-center rounded-[10px] border text-lg font-semibold ${
                     active
-                      ? 'bg-surface-container-high text-primary'
-                      : 'bg-surface-container text-on-surface'
+                      ? 'border-[var(--gold)] bg-[var(--paper)] text-[var(--ink)]'
+                      : 'border-[var(--line)] bg-[var(--page)] text-[var(--text)]'
                   }`}
                 >
                   {digit ??
                     (active ? (
-                      <span className="inline-block h-0.5 w-2.5 translate-y-2 animate-pulse bg-primary" />
+                      <span className="inline-block h-0.5 w-2.5 translate-y-2 bg-[var(--gold)]" />
                     ) : null)}
                 </div>
               );
@@ -348,17 +352,13 @@ function CodeStep({
         </div>
 
         {error ? (
-          <div className="mb-6 flex items-center rounded-lg bg-[#93000a] p-2.5">
-            <span className="font-mono text-[0.6875rem] font-medium text-[#ffdad6]">
-              ✕ {error}
-            </span>
-          </div>
+          <p className="mb-6 text-sm" role="alert">{error}</p>
         ) : null}
 
         <button
           type="submit"
           disabled={sending}
-          className="mb-4 flex w-full items-center justify-center rounded-full bg-primary-container px-4 py-3.5 text-sm font-semibold text-on-primary-container shadow-md transition-transform active:scale-[0.98] disabled:opacity-50"
+          className="sun-btn landing-focus mb-4 flex h-11 w-full items-center justify-center px-4 text-sm font-semibold disabled:opacity-50"
         >
           {sending ? 'Confirmando…' : 'Confirmar entrada'}
         </button>
@@ -369,14 +369,14 @@ function CodeStep({
           type="button"
           onClick={onResend}
           disabled={sending}
-          className="text-left font-mono text-[0.6875rem] tracking-wider text-tertiary hover:underline disabled:opacity-50"
+          className="landing-focus text-left text-xs tracking-wider text-[var(--gold)] underline disabled:opacity-50"
         >
           Reenviar código
         </button>
         <button
           type="button"
           onClick={onChangeEmail}
-          className="text-right font-mono text-[0.6875rem] text-outline hover:text-on-surface"
+          className="landing-focus text-right text-xs text-[var(--muted)] underline"
         >
           Cambiar email
         </button>
@@ -386,7 +386,7 @@ function CodeStep({
         <button
           type="button"
           onClick={onChangeEmail}
-          className="font-mono text-[0.6875rem] text-outline transition-colors hover:text-on-surface"
+          className="landing-focus text-xs text-[var(--muted)] underline"
         >
           ← Volver atrás
         </button>

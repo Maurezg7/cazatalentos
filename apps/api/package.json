@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "predev": "pnpm --filter @cazatalentos/shared build",
     "dev": "nest start --watch",
+    "prebuild": "pnpm --filter @cazatalentos/shared build",
     "build": "nest build",
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\" --max-warnings 0",

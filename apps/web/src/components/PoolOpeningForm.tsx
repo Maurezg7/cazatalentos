@@ -8,6 +8,7 @@ import { CAZATALENTOS_ABI } from '../lib/contracts';
 import { formatDeadline } from '../lib/format';
 import { useOpenPool } from '../lib/hooks';
 import { ActionButton } from './ActionButton';
+import { Icon } from './Icon';
 import { userFacingMessage } from '../lib/observability/decode-contract-error';
 import { log } from '../lib/observability/logger';
 import { getRequestId } from '../lib/observability/request-id';
@@ -104,7 +105,7 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
       <div className="space-y-3">
         <p className="text-sm text-[#e3e8d8]">Listo. El pozo quedó abierto.</p>
         <Link to={`/pool/${createdPoolId.toString()}`} className="text-sm text-ocre-600 underline">
-          Ver el pozo →
+          Ver el pozo <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
         </Link>
       </div>
     );

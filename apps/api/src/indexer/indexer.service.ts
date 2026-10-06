@@ -20,8 +20,9 @@ const CURSOR_NAME = 'cazatalentos';
 // Larger windows are rejected with "eth_getLogs is limited to a 100 range".
 const DEFAULT_CHUNK_SIZE = 100;
 const CATCH_UP_LAG_BLOCKS = 1_000n;
-// Faster than INDEXER_POLL_INTERVAL_MS while the cursor is still behind.
-const CATCH_UP_INTERVAL_MS = 500;
+// Chain the next chunk immediately while the cursor is still behind.
+const CATCH_UP_INTERVAL_MS = 0;
+const CATCH_UP_LOG_INTERVAL_MS = 15_000;
 
 const POOL_STATUSES = ['Open', 'Claimed', 'Approved', 'Rejected', 'Reclaimed'] as const;
 
@@ -88,6 +89,8 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
   private inflight: Promise<void> | undefined;
   private consecutiveFailures = 0;
   private backoffUntil = 0;
+  private catchUpAnnounced = false;
+  private lastCatchUpLogAt = 0;
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -212,15 +215,10 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
 
     const lag = currentBlock - cursor.lastBlock;
     if (lag > this.lagWarningBlocks) {
-      this.logger.warn({
-        code: 'INDEXER_LAG',
-        layer: 'indexer',
-        requestId: currentRequestId(),
-        lastBlock: cursor.lastBlock.toString(),
-        currentBlock: currentBlock.toString(),
-        lag: lag.toString(),
-        hint: 'Indexer lag is high. Check RPC eth_getLogs limits and backoff.',
-      });
+      this.noteCatchUp(cursor.lastBlock, currentBlock, lag);
+    } else if (this.catchUpAnnounced) {
+      this.catchUpAnnounced = false;
+      this.logger.log(`Indexer caught up at block ${currentBlock.toString()}`);
     }
 
     const fromBlock = cursor.lastBlock + 1n;
@@ -236,9 +234,11 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       return a.logIndex - b.logIndex;
     });
 
-    this.logger.log(
-      `Processing chunk ${fromBlock.toString()}-${toBlock.toString()} (${logs.length} logs)`,
-    );
+    if (logs.length > 0) {
+      this.logger.log(
+        `Processing chunk ${fromBlock.toString()}-${toBlock.toString()} (${logs.length} logs)`,
+      );
+    }
 
     const timestamps = await this.blockTimestamps(logs);
 
@@ -257,9 +257,32 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
     });
 
     const { counts } = collected;
-    this.logger.log(
-      `DB upserts artists=${counts.artists} supporters=${counts.supporters} pools=${counts.pools} votes=${counts.votes}`,
-    );
+    if (logs.length > 0) {
+      this.logger.log(
+        `DB upserts artists=${counts.artists} supporters=${counts.supporters} pools=${counts.pools} votes=${counts.votes}`,
+      );
+    }
+  }
+
+  private noteCatchUp(lastBlock: bigint, currentBlock: bigint, lag: bigint): void {
+    const now = Date.now();
+    if (this.catchUpAnnounced && now - this.lastCatchUpLogAt < CATCH_UP_LOG_INTERVAL_MS) return;
+    this.lastCatchUpLogAt = now;
+    const progress = `block ${lastBlock.toString()} of ${currentBlock.toString()} (${lag.toString()} behind)`;
+    if (!this.catchUpAnnounced) {
+      this.catchUpAnnounced = true;
+      this.logger.warn({
+        code: 'INDEXER_LAG',
+        layer: 'indexer',
+        requestId: currentRequestId(),
+        lastBlock: lastBlock.toString(),
+        currentBlock: currentBlock.toString(),
+        lag: lag.toString(),
+        hint: 'Indexer is catching up. Cursor keeps advancing in 100-block chunks.',
+      });
+      return;
+    }
+    this.logger.log(`Indexing ${progress}`);
   }
 
   private async ensureCursor(): Promise<{ lastBlock: bigint }> {
@@ -286,12 +309,26 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
   ): Promise<{ logs: IndexedLog[]; counts: WriteCounts }> {
     const logs: IndexedLog[] = [];
     const counts: WriteCounts = { artists: 0, supporters: 0, pools: 0, votes: 0 };
-    const range = { address: this.contract, fromBlock, toBlock } as const;
 
-    const artists = await withRpcRetry('getLogs:ArtistRegistered', () =>
-      this.client.getLogs({ ...range, event: artistRegisteredEvent }),
+    const matched = await withRpcRetry('getLogs', () =>
+      this.client.getLogs({
+        address: this.contract,
+        events: [
+          artistRegisteredEvent,
+          beliefSignedEvent,
+          poolOpenedEvent,
+          milestoneClaimedEvent,
+          votedEvent,
+          poolFinalizedEvent,
+          rewardClaimedEvent,
+          poolReclaimedEvent,
+          stakeWithdrawnEvent,
+        ],
+        fromBlock,
+        toBlock,
+      }),
     );
-    this.logger.log(`ArtistRegistered: ${artists.length}`);
+    const artists = matched.filter((log) => log.eventName === 'ArtistRegistered');
     for (const log of artists) {
       const artistId = Number(log.args.artistId);
       const owner = log.args.owner;
@@ -326,10 +363,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const beliefs = await withRpcRetry('getLogs:BeliefSigned', () =>
-      this.client.getLogs({ ...range, event: beliefSignedEvent }),
-    );
-    this.logger.log(`BeliefSigned: ${beliefs.length}`);
+    const beliefs = matched.filter((log) => log.eventName === 'BeliefSigned');
     for (const log of beliefs) {
       const artistId = Number(log.args.artistId);
       const address = log.args.supporter?.toLowerCase();
@@ -356,10 +390,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const pools = await withRpcRetry('getLogs:PoolOpened', () =>
-      this.client.getLogs({ ...range, event: poolOpenedEvent }),
-    );
-    this.logger.log(`PoolOpened: ${pools.length}`);
+    const pools = matched.filter((log) => log.eventName === 'PoolOpened');
     for (const log of pools) {
       const poolId = Number(log.args.poolId);
       const artistId = Number(log.args.artistId);
@@ -400,10 +431,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const claims = await withRpcRetry('getLogs:MilestoneClaimed', () =>
-      this.client.getLogs({ ...range, event: milestoneClaimedEvent }),
-    );
-    this.logger.log(`MilestoneClaimed: ${claims.length}`);
+    const claims = matched.filter((log) => log.eventName === 'MilestoneClaimed');
     for (const log of claims) {
       const poolId = Number(log.args.poolId);
       const evidenceURI = log.args.evidenceURI ?? '';
@@ -428,10 +456,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const votes = await withRpcRetry('getLogs:Voted', () =>
-      this.client.getLogs({ ...range, event: votedEvent }),
-    );
-    this.logger.log(`Voted: ${votes.length}`);
+    const votes = matched.filter((log) => log.eventName === 'Voted');
     for (const log of votes) {
       const poolId = Number(log.args.poolId);
       const address = log.args.supporter?.toLowerCase();
@@ -454,10 +479,7 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const finals = await withRpcRetry('getLogs:PoolFinalized', () =>
-      this.client.getLogs({ ...range, event: poolFinalizedEvent }),
-    );
-    this.logger.log(`PoolFinalized: ${finals.length}`);
+    const finals = matched.filter((log) => log.eventName === 'PoolFinalized');
     for (const log of finals) {
       const poolId = Number(log.args.poolId);
       const statusIndex = Number(log.args.status);
@@ -478,30 +500,21 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    const rewards = await withRpcRetry('getLogs:RewardClaimed', () =>
-      this.client.getLogs({ ...range, event: rewardClaimedEvent }),
-    );
-    this.logger.log(`RewardClaimed: ${rewards.length}`);
+    const rewards = matched.filter((log) => log.eventName === 'RewardClaimed');
     for (const log of rewards) {
       this.logger.log(
         `RewardClaimed pool=${log.args.poolId?.toString() ?? '?'} supporter=${log.args.supporter ?? '?'} amount=${log.args.amount?.toString() ?? '?'}`,
       );
     }
 
-    const reclaimed = await withRpcRetry('getLogs:PoolReclaimed', () =>
-      this.client.getLogs({ ...range, event: poolReclaimedEvent }),
-    );
-    this.logger.log(`PoolReclaimed: ${reclaimed.length}`);
+    const reclaimed = matched.filter((log) => log.eventName === 'PoolReclaimed');
     for (const log of reclaimed) {
       this.logger.log(
         `PoolReclaimed pool=${log.args.poolId?.toString() ?? '?'} artist=${log.args.artist ?? '?'} amount=${log.args.amount?.toString() ?? '?'}`,
       );
     }
 
-    const withdrawn = await withRpcRetry('getLogs:StakeWithdrawn', () =>
-      this.client.getLogs({ ...range, event: stakeWithdrawnEvent }),
-    );
-    this.logger.log(`StakeWithdrawn: ${withdrawn.length}`);
+    const withdrawn = matched.filter((log) => log.eventName === 'StakeWithdrawn');
     for (const log of withdrawn) {
       this.logger.log(
         `StakeWithdrawn artist=${log.args.artistId?.toString() ?? '?'} supporter=${log.args.supporter ?? '?'} amount=${log.args.amount?.toString() ?? '?'}`,

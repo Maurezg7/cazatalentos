@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAccount, useBlock, usePublicClient } from 'wagmi';
 import { fetchPool } from '../lib/api';
 import { ActionButton } from '../components/ActionButton';
+import { Icon } from '../components/Icon';
 import { DeclareMilestoneForm } from '../components/DeclareMilestoneForm';
 import { DevTimeTravel, readSimulatedOffset, TIME_TRAVEL_EVENT } from '../components/DevTimeTravel';
 import { ErrorState } from '../components/ErrorState';
@@ -180,8 +181,8 @@ export function PoolPage() {
   }
 
   return (
-    <section className="flex flex-col gap-6 pb-6 pt-3 lg:gap-8 lg:pb-10 lg:pt-6">
-      <h1 className="font-serif text-xl italic text-on-surface lg:text-2xl">Detalle del pozo</h1>
+    <section className="flex flex-col gap-6 rounded-3xl border border-[#3c4626] bg-[#14180f] p-4 pb-6 pt-4 text-[#e3e8d8] lg:gap-8 lg:p-8">
+      <h1 className="font-serif text-3xl italic text-[#f5f7ee]">Detalle del pozo</h1>
 
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10">
       <div className="flex flex-col gap-6 lg:col-span-5">
@@ -232,7 +233,7 @@ export function PoolPage() {
               rel="noreferrer"
               className="font-mono text-[0.6875rem] text-tertiary hover:underline"
             >
-              Ver evidencia →
+              Ver evidencia <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
             </a>
           ) : null}
         </div>

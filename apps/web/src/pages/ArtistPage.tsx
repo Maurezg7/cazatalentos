@@ -4,16 +4,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { parseEther } from 'viem';
 import { useAccount, useBalance } from 'wagmi';
-import { fetchArtistPools, fetchArtistProfile } from '../lib/api';
+import { fetchArtistPools, fetchArtistProfile, mediaUrl } from '../lib/api';
 import { ActionButton } from '../components/ActionButton';
+import { Icon } from '../components/Icon';
 import { useEntrySheet } from '../components/EntrySheet';
 import { ArtistHeader, CoverMedia } from '../components/ArtistHeader';
+import { ArtistStudio } from '../components/ArtistStudio';
 import { BeliefCard } from '../components/BeliefCard';
 import { ErrorState } from '../components/ErrorState';
 import { LoadingState } from '../components/LoadingState';
 import { PoolCard } from '../components/PoolCard';
 import { PoolOpeningForm } from '../components/PoolOpeningForm';
 import { RegisterArtistModal } from '../components/RegisterArtistModal';
+import { PrintTicket } from '../effects/PrintTicket';
 import { formatMON, shortAddress } from '../lib/format';
 import { useArtist, useMinStake, useRecentRegisteredArtist, useSignBelief, useSupporter } from '../lib/hooks';
 
@@ -46,7 +49,6 @@ export function ArtistPage() {
   const {
     data: artistRaw,
     isLoading: artistLoading,
-    isError: artistError,
     refetch: refetchArtist,
   } = useArtist(artistId);
 
@@ -91,17 +93,21 @@ export function ArtistPage() {
     );
   }
 
-  if (artistLoading) {
+  const onChain = artist?.exists ? artist : null;
+  const waiting = !profile && !onChain && (profileQuery.isLoading || artistLoading);
+
+  if (waiting) {
     return <LoadingState label="Buscando al artista…" />;
   }
 
-  if (artistError || !artist || !artist.exists) {
+  if (!profile && !onChain) {
     return (
       <ErrorState
         title="No encontramos ese artista"
         message="Puede que el link esté mal o que el perfil no exista todavía."
         onRetry={() => {
           void refetchArtist();
+          void profileQuery.refetch();
         }}
       />
     );
@@ -113,66 +119,98 @@ export function ArtistPage() {
     balance !== undefined &&
     balance.value < minStake + GAS_BUFFER;
 
-  const displayName = profile?.displayName ?? artist.metadataURI;
+  const displayName = profile?.displayName ?? onChain?.metadataURI ?? 'Artista';
+  const supporterCount = onChain?.supporterCount ?? profile?.supporterCount ?? 0;
+  const owner = onChain?.owner ?? profile?.owner ?? '';
   const linkEntries = profile?.links ? Object.entries(profile.links) : [];
-  const isOwner = Boolean(
-    address && artist.owner && address.toLowerCase() === artist.owner.toLowerCase(),
-  );
+  const isOwner = Boolean(address && owner && address.toLowerCase() === owner.toLowerCase());
   const pools = [...(poolsQuery.data ?? [])].sort(
     (left, right) => new Date(right.deadline).getTime() - new Date(left.deadline).getTime(),
   );
 
   return (
     <section className="flex flex-col pb-6 pt-4 lg:pb-10 lg:pt-8">
-      <div className="w-full rounded-2xl border-2 border-[#3c4626] bg-[#181d13] p-4 text-[#e3e8d8] shadow-2xl md:p-6">
-        <CoverMedia src={profile?.photo ?? null} name={displayName} />
+      <div
+        className="w-full overflow-hidden rounded-3xl border border-[#3c4626] text-[#e3e8d8] shadow-2xl"
+        style={{
+          background: `linear-gradient(180deg, ${profile?.bioWash ?? '#1c3a28'} 0%, #14180f 340px, #14180f 100%)`,
+        }}
+      >
+        <CoverMedia src={mediaUrl(profile?.cover)} name={displayName} wash={profile?.bioWash ?? null} />
 
-        <div className="mt-0 grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
-          <div className="flex flex-col gap-6 lg:col-span-5">
-            <ArtistHeader
-              artistId={artistId}
-              name={displayName}
-              bio={profile?.bio ?? null}
-              photo={profile?.photo ?? null}
-              isOwner={isOwner}
-              supporterCount={artist.supporterCount}
-              poolCount={pools.length}
-            />
-            {linkEntries.length > 0 ? (
-              <div className="rounded-2xl border-2 border-[#3b4725] bg-[#1f2618] p-4">
-                <span className="mb-3 block font-mono text-[0.6875rem] uppercase tracking-wider text-[#879373]">
-                  Dónde escucharme
-                </span>
-                <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {linkEntries.map(([label, href]) => (
-                    <li key={label}>
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-[#414d2b] bg-[#262f1e] px-3 py-2 font-mono text-[0.6875rem] text-[#d6debe] transition-colors hover:bg-[#323d27]"
-                      >
-                        <span className="truncate">{prettyLinkLabel(label)}</span>
-                        <span className="shrink-0 text-primary">Escuchar</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </div>
+        <div className="px-4 pb-6 md:px-8 md:pb-8">
+          <ArtistHeader
+            artistId={artistId}
+            name={displayName}
+            bio={profile?.bio ?? null}
+            bioWash={profile?.bioWash ?? null}
+            bioInk={profile?.bioInk ?? null}
+            nameFont={profile?.nameFont ?? null}
+            country={profile?.country ?? null}
+            region={profile?.region ?? null}
+            photo={mediaUrl(profile?.photo)}
+            isOwner={isOwner}
+            ownerAddress={address}
+            supporterCount={supporterCount}
+            poolCount={pools.length}
+            accent={profile?.bioInk ?? null}
+          />
 
-          <div className="flex flex-col gap-6 lg:col-span-7">
+          {linkEntries.length > 0 ? (
+            <ul className="mt-5 flex flex-wrap gap-2">
+              {linkEntries.map(([label, href]) => (
+                <li key={label}>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-10 items-center rounded-full border border-[#414d2b] bg-[#1c2416] px-4 font-mono text-[0.6875rem] text-[#d6debe] transition-colors hover:border-[#8ea459] hover:text-[#f5f7ee]"
+                  >
+                    {prettyLinkLabel(label)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <ArtistStudio
+                artistId={Number(artistId)}
+                ownerAddress={address}
+                isOwner={isOwner}
+                bio={profile?.bio ?? null}
+                bioWash={profile?.bioWash ?? null}
+                bioInk={profile?.bioInk ?? null}
+                nameFont={profile?.nameFont ?? null}
+                displayName={displayName}
+                country={profile?.country ?? null}
+                region={profile?.region ?? null}
+                photo={mediaUrl(profile?.photo)}
+                cover={mediaUrl(profile?.cover)}
+                onProfileSaved={() => {
+                  void profileQuery.refetch();
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-6 lg:col-span-5">
             {hasBelief && supporter && !isOwner ? (
               <BeliefCard
                 artistId={artistId}
                 artistName={displayName}
                 supporter={supporter}
-                totalSupporters={artist.supporterCount}
+                totalSupporters={supporterCount}
               />
             ) : null}
 
-            {!hasBelief && !isOwner ? (
+            {!onChain && profile ? (
+              <p className="rounded-2xl border border-[#434e2b] bg-[#21281a] p-4 text-sm text-[#a8b393]">
+                Este perfil está en el registro. La marca en el contrato se habilita cuando el artista quede publicado en la red.
+              </p>
+            ) : null}
+
+            {!hasBelief && !isOwner && onChain ? (
               <div className="flex flex-col gap-2 rounded-2xl border-2 border-[#434e2b] bg-[#21281a] p-4 lg:p-6">
                 {!authenticated ? (
                   <ActionButton
@@ -197,7 +235,7 @@ export function ArtistPage() {
                           rel="noreferrer"
                           className="inline-flex min-h-11 items-center text-xs text-tertiary underline"
                         >
-                          Ir al faucet →
+                          Ir al faucet <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
                         </a>
                       </div>
                     ) : null}
@@ -223,9 +261,7 @@ export function ArtistPage() {
                 {signError ? (
                   <p className="text-sm text-vino-700">{signError.userMessage}</p>
                 ) : null}
-                {isSuccess ? (
-                  <p className="text-sm text-secondary">Listo. Tu marca quedó registrada.</p>
-                ) : null}
+                {isSuccess ? <PrintTicket confirmed rank={supporter?.rank || 1} /> : null}
               </div>
             ) : null}
 
@@ -235,7 +271,7 @@ export function ArtistPage() {
                   <h2 className="font-serif text-2xl font-semibold italic text-[#f5f7ee]">
                     Mis pozos
                   </h2>
-                  {artist.supporterCount > 0 ? (
+                  {supporterCount > 0 ? (
                     <button
                       type="button"
                       onClick={() => setPoolFormOpen(true)}
@@ -256,7 +292,7 @@ export function ArtistPage() {
                       Los pozos reúnen depósitos de respaldo para tus próximos discos, giras o
                       instrumentos.
                     </p>
-                    {artist.supporterCount === 0 ? (
+                    {supporterCount === 0 ? (
                       <p className="text-xs text-[#a8b393]">
                         Cuando alguien deje su marca, vas a poder abrir un pozo de recompensa.
                       </p>
@@ -282,7 +318,7 @@ export function ArtistPage() {
                 to={`/artist/${recentMine.data.toString()}`}
                 className="flex min-h-11 items-center justify-center gap-1 text-sm text-tertiary hover:underline"
               >
-                Tu perfil ya está creado →
+                Tu perfil ya está creado <Icon name="arrow-right" className="h-3.5 w-3.5" />
               </Link>
             ) : authenticated && !isOwner ? (
               <button
@@ -290,9 +326,10 @@ export function ArtistPage() {
                 onClick={() => setRegisterOpen(true)}
                 className="flex min-h-11 w-full items-center justify-center gap-1 text-sm text-tertiary hover:underline"
               >
-                ¿Sos artista? Creá tu perfil →
+                ¿Sos artista? Creá tu perfil <Icon name="arrow-right" className="h-3.5 w-3.5" />
               </button>
             ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -328,7 +365,7 @@ export function ArtistPage() {
                 aria-label="Cerrar"
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-[#3b4725] bg-[#181d13] text-[#8e9a7a] hover:text-[#f4f7ee]"
               >
-                ✕
+                <Icon name="x" className="h-4 w-4" />
               </button>
             </div>
             <PoolOpeningForm

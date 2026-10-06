@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { AppError } from '@cazatalentos/shared';
 import { CAZATALENTOS_ABI } from '../lib/contracts';
 import { useRegisterArtist } from '../lib/hooks';
-import { ActionButton } from './ActionButton';
+import { Icon } from './Icon';
 
 const CONFIRM_TIMEOUT_MS = 90_000;
 
@@ -48,6 +48,15 @@ export function RegisterArtistModal({ open, onClose, onRegistered }: RegisterArt
   useEffect(() => {
     onRegisteredRef.current = onRegistered;
   }, [onRegistered]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
 
   useEffect(() => {
     aliveRef.current = open;
@@ -124,23 +133,27 @@ export function RegisterArtistModal({ open, onClose, onRegistered }: RegisterArt
   }
 
   return (
-    <div className="fixed inset-0 z-20 flex items-end justify-center bg-tierra-900/40 p-4 sm:items-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">
+      <button type="button" aria-label="Cerrar" onClick={handleClose} className="absolute inset-0 bg-black/50" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="register-artist-title"
-        className="w-full max-w-md space-y-4 rounded-xl bg-surface-container-high p-5 shadow-lg"
+        className="relative z-10 w-full max-w-md space-y-4 rounded-[16px] border border-[var(--line)] bg-[var(--panel)] p-5 text-[var(--text)] shadow-lg"
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 id="register-artist-title" className="font-serif text-2xl text-tierra-900">
-            Crear tu perfil de artista
-          </h2>
-          <button type="button" onClick={handleClose} className="text-sm text-tierra-700">
-            Cerrar
+          <div>
+            <p className="m-0 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--gold)]">Alta de artista</p>
+            <h2 id="register-artist-title" className="m-0 font-display text-3xl uppercase tracking-wide">
+              Crear tu perfil
+            </h2>
+          </div>
+          <button type="button" onClick={handleClose} className="landing-focus inline-flex h-11 w-11 items-center justify-center" aria-label="Cerrar">
+            <Icon name="x" />
           </button>
         </div>
 
-        <label className="block space-y-1 text-sm text-tierra-900">
+        <label className="block space-y-1 text-sm">
           <span>Nombre artístico</span>
           <input
             value={name}
@@ -149,11 +162,11 @@ export function RegisterArtistModal({ open, onClose, onRegistered }: RegisterArt
             placeholder="Tu nombre artístico"
             disabled={busy}
             onChange={(event) => setName(event.target.value)}
-            className="w-full rounded-lg border border-tierra-100 px-3 py-3 disabled:opacity-60"
+            className="landing-focus h-11 w-full rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3 text-[var(--ink)] disabled:opacity-60"
           />
         </label>
 
-        <label className="block space-y-1 text-sm text-tierra-900">
+        <label className="block space-y-1 text-sm">
           <span>Bio breve</span>
           <textarea
             value={bio}
@@ -162,14 +175,14 @@ export function RegisterArtistModal({ open, onClose, onRegistered }: RegisterArt
             placeholder="Una línea sobre tu música (opcional)"
             disabled={busy}
             onChange={(event) => setBio(event.target.value)}
-            className="w-full rounded-lg border border-tierra-100 px-3 py-3 disabled:opacity-60"
+            className="landing-focus w-full rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3 py-3 text-[var(--ink)] disabled:opacity-60"
           />
-          <span className="text-xs text-tierra-700">
+          <span className="text-xs text-[var(--muted)]">
             Por ahora solo queda guardado el nombre. La bio se suma después.
           </span>
         </label>
 
-        <p className="rounded-lg bg-tierra-50 p-3 text-sm text-tierra-900">
+        <p className="rounded-[10px] border border-[var(--line)] bg-[var(--page)] p-3 text-sm">
           {phase === 'signing'
             ? 'Revisá la confirmación para firmar. Si no aparece, cerrá y volvé a intentar.'
             : phase === 'confirming'
@@ -177,9 +190,16 @@ export function RegisterArtistModal({ open, onClose, onRegistered }: RegisterArt
               : `Vas a firmar la creación del perfil «${name.trim() || '…'}».`}
         </p>
 
-        {error ? <p className="text-sm text-vino-700">{error}</p> : null}
+        {error ? <p className="text-sm" role="alert">{error}</p> : null}
 
-        <ActionButton label="Crear perfil" onClick={() => void onSubmit()} loading={busy} disabled={busy} />
+        <button
+          type="button"
+          onClick={() => void onSubmit()}
+          disabled={busy}
+          className="sun-btn landing-focus h-11 w-full px-4 text-sm font-semibold disabled:opacity-50"
+        >
+          {busy ? 'Firmando…' : 'Crear perfil'}
+        </button>
       </div>
     </div>
   );

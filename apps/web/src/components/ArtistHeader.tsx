@@ -1,23 +1,40 @@
 import { useRef, useState } from 'react';
+import { nameFontClass, readableInk } from '../lib/name-style';
+import { flagEmoji } from '../lib/places';
+import { ArtistReels } from './ArtistReels';
 
 type ArtistHeaderProps = {
   artistId: bigint;
   name: string;
   bio: string | null;
+  bioWash: string | null;
+  bioInk: string | null;
+  nameFont: string | null;
+  country: string | null;
+  region: string | null;
   photo: string | null;
   isOwner: boolean;
+  ownerAddress: string | undefined;
   supporterCount: number;
   poolCount: number;
+  accent: string | null;
 };
 
 export function ArtistHeader({
   artistId,
   name,
   bio,
+  bioWash,
+  bioInk,
+  nameFont,
+  country,
+  region,
   photo,
   isOwner,
+  ownerAddress,
   supporterCount,
   poolCount,
+  accent,
 }: ArtistHeaderProps) {
   const acta = artistId.toString().padStart(3, '0');
   const initial = name.trim().slice(0, 1).toUpperCase() || 'A';
@@ -26,55 +43,72 @@ export function ArtistHeader({
   const poolsLabel = poolCount === 1 ? '1 pozo' : `${poolCount} pozos`;
 
   return (
-      <div className="relative rounded-2xl border-2 border-[#434e2c] bg-[#21281a] p-4 pt-0 shadow-lg">
-        <div className="mb-3 flex items-end justify-between -mt-12">
-          <div className="relative h-24 w-24 overflow-hidden rounded-2xl border-[3px] border-[#21281a] bg-[#2e3723] shadow-2xl ring-2 ring-[#5c6b3a]">
+    <div className="relative -mt-14 md:-mt-16">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end gap-4">
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-[#14180f] bg-[#2e3723] shadow-2xl md:h-32 md:w-32">
             {photo && !isVideoUrl(photo) ? (
               <img src={photo} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center font-serif text-3xl font-semibold italic text-primary">
+              <div className="flex h-full w-full items-center justify-center font-serif text-4xl font-semibold italic text-primary">
                 {initial}
               </div>
             )}
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="font-serif text-4xl font-semibold italic leading-none tracking-tight text-[#f5f7ee] lg:text-5xl">
-            {name}
-          </h1>
-          {isOwner ? (
-            <span className="rounded-md border border-[#48592d] bg-[#2d381f] px-2 py-0.5 font-mono text-[0.6875rem] font-semibold uppercase tracking-wide text-secondary">
-              Tu perfil
-            </span>
-          ) : null}
-        </div>
-
-        <p className="mt-2 font-mono text-[0.6875rem] uppercase tracking-widest text-[#9ea78b]">
-          Registro · Acta #{acta}
-        </p>
-
-        {bio ? (
-          <p className="mt-3 border-t border-[#2e3722] pt-3 text-sm leading-relaxed text-[#dbe2ce] lg:text-base">
-            {bio}
-          </p>
-        ) : null}
-
-        <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#343e24] bg-[#192013] p-2.5">
-          <div className="flex flex-col">
-            <span className="font-mono text-[10px] uppercase text-[#869272]">Pioneros</span>
-            <span className="font-mono text-sm font-bold text-[#f5f7ee]">{pioneers}</span>
-          </div>
-          <div className="flex flex-col border-l border-[#2e3820] pl-2.5">
-            <span className="font-mono text-[10px] uppercase text-[#869272]">Pozos</span>
-            <span className="font-mono text-sm font-bold text-primary">{poolsLabel}</span>
+          <div className="min-w-0 pb-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1
+                className={`text-4xl font-semibold leading-none tracking-tight md:text-5xl ${nameFontClass(nameFont)}`}
+                style={{ color: readableInk(bioInk, bioWash) }}
+              >
+                {name}
+              </h1>
+              {isOwner ? (
+                <span className="rounded-full bg-[#2d381f] px-2.5 py-1 font-mono text-[0.6875rem] font-semibold uppercase tracking-wide text-secondary">
+                  Tu perfil
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-2 font-mono text-[0.6875rem] uppercase tracking-widest text-[#9ea78b]">
+              Acta #{acta}
+            </p>
+            {country ? (
+              <p className="mt-1 text-sm text-[#d6debe]">
+                <span aria-hidden>{flagEmoji(country)}</span> {region ? region : country}
+              </p>
+            ) : null}
           </div>
         </div>
+        <dl className="flex gap-8">
+          <div>
+            <dt className="font-mono text-[0.625rem] uppercase tracking-wider text-[#869272]">Pioneros</dt>
+            <dd className="font-serif text-xl italic text-[#f5f7ee]">{pioneers}</dd>
+          </div>
+          <div>
+            <dt className="font-mono text-[0.625rem] uppercase tracking-wider text-[#869272]">Pozos</dt>
+            <dd className="font-serif text-xl italic" style={{ color: accent ?? '#c6a15a' }}>{poolsLabel}</dd>
+          </div>
+        </dl>
       </div>
+
+      {bio ? (
+        <p
+          className="mt-5 max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed md:text-base"
+          style={{
+            backgroundColor: bioWash ?? '#1c2416',
+            color: bioInk ?? '#dbe2ce',
+          }}
+        >
+          {bio}
+        </p>
+      ) : null}
+
+      <ArtistReels artistId={Number(artistId)} isOwner={isOwner} ownerAddress={ownerAddress} />
+    </div>
   );
 }
 
-export function CoverMedia({ src, name }: { src: string | null; name: string }) {
+export function CoverMedia({ src, name, wash }: { src: string | null; name: string; wash: string | null }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [paused, setPaused] = useState(false);
   const [loaded, setLoaded] = useState(src === null || !isVideoUrl(src));
@@ -95,8 +129,8 @@ export function CoverMedia({ src, name }: { src: string | null; name: string }) 
 
   return (
     <div
-      className={`relative mb-0 w-full overflow-hidden rounded-2xl border-2 border-[#434f2b] bg-[#14180f] shadow-xl ${
-        src ? 'h-[220px] md:h-[320px] lg:h-[400px]' : 'h-[140px] md:h-[180px]'
+      className={`relative mb-0 w-full overflow-hidden bg-[#14180f] ${
+        src ? 'h-[220px] md:h-[300px]' : 'h-[160px] md:h-[200px]'
       }`}
     >
       {src && video ? (
@@ -121,10 +155,20 @@ export function CoverMedia({ src, name }: { src: string | null; name: string }) 
         />
       ) : null}
       {!src ? (
-        <div className="h-full w-full bg-[linear-gradient(160deg,#1b2214_0%,#2e3723_55%,#14180f_100%)]" />
+        <div
+          className="h-full w-full"
+          style={{
+            background: `linear-gradient(160deg, ${wash ?? '#1b2214'} 0%, #14180f 100%)`,
+          }}
+        />
       ) : null}
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#14180f] via-transparent to-black/40" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `linear-gradient(to top, ${wash ?? '#14180f'} 0%, transparent 55%, rgba(0,0,0,0.35) 100%)`,
+        }}
+      />
 
       {!loaded && video ? (
         <p className="absolute left-4 top-4 z-10 font-mono text-[0.6875rem] uppercase tracking-wider text-[#d6debe]">

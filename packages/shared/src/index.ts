@@ -12,3 +12,4 @@ export {
   type ErrorLayer,
 } from './codes';
 export { ERROR_DICTIONARY, lookupError, type ErrorCopy } from './dictionary';
+export { contentHash, writeAuthMessage, type WriteAction } from './write-auth';

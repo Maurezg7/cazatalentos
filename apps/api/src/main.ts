@@ -9,14 +9,14 @@ async function bootstrap(): Promise<void> {
   const rawEnv = validateEnv(process.env as Record<string, unknown>);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ trustProxy: true }),
+    new FastifyAdapter({ trustProxy: true, bodyLimit: 12 * 1024 * 1024 }),
     { bufferLogs: true },
   );
   app.useLogger(app.get(Logger));
   app.enableCors({
     origin: [rawEnv.WEB_ORIGIN as string, 'http://localhost:5173'],
     credentials: false,
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-request-id', 'x-indexer-secret'],
     exposedHeaders: ['x-request-id'],
   });
