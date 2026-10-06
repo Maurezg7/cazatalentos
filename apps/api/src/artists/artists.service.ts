@@ -187,7 +187,16 @@ export class ArtistsService {
     const placed = placeSponsored(sorted);
     const start = (pagina - 1) * tamano;
     return {
-      items: placed.slice(start, start + tamano).map(({ pronto: _pronto, creado: _creado, ...item }) => item),
+      items: placed.slice(start, start + tamano).map((row) => ({
+        id: row.id,
+        nombre: row.nombre,
+        ciudad: row.ciudad,
+        generos: row.generos,
+        pioneros: row.pioneros,
+        patrocinado: row.patrocinado,
+        portada: row.portada,
+        pozo: row.pozo,
+      })),
       total: placed.length,
       pagina,
       tamano,
