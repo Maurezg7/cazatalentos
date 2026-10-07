@@ -250,9 +250,10 @@ export class IndexerService implements OnModuleInit, OnModuleDestroy {
         }
         await log.apply(tx, signedAt);
       }
-      await tx.indexerCursor.update({
+      await tx.indexerCursor.upsert({
         where: { name: CURSOR_NAME },
-        data: { lastBlock: toBlock },
+        create: { name: CURSOR_NAME, lastBlock: toBlock },
+        update: { lastBlock: toBlock },
       });
     });
 
