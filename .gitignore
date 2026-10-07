@@ -65,3 +65,4 @@ apps/web/.env
 apps/api/.env
 apps/api/.env
 *.tsbuildinfo
+.atl/
