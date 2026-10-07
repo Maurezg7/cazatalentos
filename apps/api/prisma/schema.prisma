@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Artist {
+  id             Int      @id
+  owner          String   @db.VarChar(42)
+  metadataURI    String   @db.Text
+  supporterCount Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  name  String? @db.Text
+  photo String? @db.Text
+  cover String? @db.Text
+  bio     String? @db.Text
+  bioWash String? @db.VarChar(7)
+  bioInk  String? @db.VarChar(7)
+  nameFont String? @db.VarChar(16)
+  country   String? @db.VarChar(2)
+  region    String? @db.VarChar(40)
+  promoRank Int     @default(0)
+  links   Json?
+
+  supporters Supporter[]
+  pools      Pool[]
+  posts      ArtistPost[]
+  reels      ArtistReel[]
+
+  @@map("artists")
+}
+
+model Supporter {
+  id        Int      @id @default(autoincrement())
+  artistId  Int
+  address   String   @db.VarChar(42)
+  rank      Int
+  weight    Int
+  signedAt  DateTime
+  stakeWei  String   @db.VarChar(78)
+  createdAt DateTime @default(now())
+
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@unique([artistId, address])
+  @@index([artistId, rank])
+  @@index([address])
+  @@map("supporters")
+}
+
+model Pool {
+  id                Int       @id
+  artistId          Int
+  amountWei         String    @db.VarChar(78)
+  milestoneHash     String    @db.VarChar(66)
+  deadline          DateTime
+  voteEnd           DateTime?
+  supportersAtOpen  Int
+  totalWeightAtOpen String    @db.VarChar(78)
+  status               String    @db.VarChar(20)
+  evidenceURI          String?   @db.Text
+  milestoneDescription String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  artist Artist @relation(fields: [artistId], references: [id])
+  votes  Vote[]
+
+  @@index([artistId, status])
+  @@map("pools")
+}
+
+model Vote {
+  id        Int      @id @default(autoincrement())
+  poolId    Int
+  address   String   @db.VarChar(42)
+  approve   Boolean
+  weight    String   @db.VarChar(78)
+  votedAt   DateTime
+  createdAt DateTime @default(now())
+
+  pool Pool @relation(fields: [poolId], references: [id])
+
+  @@unique([poolId, address])
+  @@map("votes")
+}
+
+model ArtistReel {
+  id        Int      @id @default(autoincrement())
+  artistId  Int
+  caption     String  @default("") @db.VarChar(80)
+  overlayText String  @default("") @db.VarChar(60)
+  filter      String  @default("none") @db.VarChar(12)
+  textPlace   String  @default("middle") @db.VarChar(8)
+  fileName    String  @db.VarChar(64)
+  createdAt DateTime @default(now())
+
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@index([artistId, createdAt])
+  @@map("artist_reels")
+}
+
+model ArtistPost {
+  id        Int      @id @default(autoincrement())
+  artistId  Int
+  body      String   @db.VarChar(280)
+  media     String?  @db.Text
+  mediaKind String?  @db.VarChar(8)
+  createdAt DateTime @default(now())
+
+  artist Artist @relation(fields: [artistId], references: [id])
+
+  @@index([artistId, createdAt])
+  @@map("artist_posts")
+}
+
+model UsedSignature {
+  signature String   @id @db.VarChar(132)
+  createdAt DateTime @default(now())
+
+  @@map("used_signatures")
+}
+
+model IndexerCursor {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  lastBlock BigInt
+  updatedAt DateTime @updatedAt
+
+  @@map("indexer_cursors")
+}

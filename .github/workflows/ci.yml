@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.8.4
+
+      - run: cd contracts && forge fmt --check
+      - run: cd contracts && forge build --sizes
+      - run: cd contracts && forge test -vvv
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cazatalentos/web typecheck
+      - run: pnpm --filter @cazatalentos/web lint
+      - run: pnpm --filter @cazatalentos/web test
+      - run: pnpm --filter @cazatalentos/web build
+      - run: pnpm --filter @cazatalentos/web size
+
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @cazatalentos/api exec prisma generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      - run: pnpm --filter @cazatalentos/api typecheck
+      - run: pnpm --filter @cazatalentos/api lint

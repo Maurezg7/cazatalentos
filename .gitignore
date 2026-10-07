@@ -1,0 +1,68 @@
+node_modules
+dist
+build
+.env
+.env.*
+!.env.example
+out/
+cache/
+broadcast/
+coverage/
+*.log
+apps/api/uploads/
+.DS_Store
+
+# ============================================================
+# AI tooling artifacts — local only, never committed
+# ============================================================
+
+# Cursor
+# Local IDE data (chats, caches, per-machine settings)
+.cursor/
+# Legacy root config (if any)
+.cursorrules
+# Optional ignore file for Cursor indexing
+.cursorignore
+# Loose cursor config files
+*.cursor
+
+# Claude / Anthropic
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.claudeignore
+
+# Aider
+.aider*
+.aiderignore
+
+# Continue
+.continue/
+
+# Windsurf / Codeium
+.windsurf/
+.windsurfrules
+.codeium/
+.codeiumignore
+
+# Zed
+.zed/
+
+# GitHub Copilot
+.github/copilot-instructions.md
+
+# Generic AI context / session artifacts
+.ai-context/
+.ai-progress/
+memory/
+reviews/
+sessions_mo/
+
+# Coverage artifacts
+lcov.info
+coverage/
+apps/web/.env
+apps/api/.env
+apps/api/.env
+*.tsbuildinfo
+.atl/

@@ -1,0 +1,6 @@
+ALTER TABLE "artists" ADD COLUMN "country" VARCHAR(2),
+ADD COLUMN "region" VARCHAR(40);
+
+ALTER TABLE "artist_reels" ADD COLUMN "overlayText" VARCHAR(60) NOT NULL DEFAULT '',
+ADD COLUMN "filter" VARCHAR(12) NOT NULL DEFAULT 'none',
+ADD COLUMN "textPlace" VARCHAR(8) NOT NULL DEFAULT 'middle';

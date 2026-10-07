@@ -1,0 +1,52 @@
+{
+  "name": "@cazatalentos/api",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "predev": "pnpm --filter @cazatalentos/shared build",
+    "dev": "nest start --watch",
+    "prebuild": "pnpm --filter @cazatalentos/shared build",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.1.2",
+    "@nestjs/config": "^12.0.1",
+    "@nestjs/core": "^12.1.2",
+    "@nestjs/platform-fastify": "^12.1.2",
+    "@nestjs/schedule": "^12.0.2",
+    "@nestjs/throttler": "^6.7.1",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "pg": "^8.23.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "viem": "^2.57.2",
+    "zod": "^4.6.5",
+    "@cazatalentos/shared": "workspace:*",
+    "nestjs-pino": "^4.4.1",
+    "pino": "^9.9.0",
+    "pino-http": "^10.5.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^12.0.8",
+    "@nestjs/schematics": "^12.0.6",
+    "@nestjs/testing": "^12.1.2",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "jest": "^30.5.2",
+    "prisma": "7.10.0",
+    "ts-jest": "^29.4.14",
+    "typescript": "6.0.3",
+    "pino-pretty": "^13.1.1"
+  }
+}
