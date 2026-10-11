@@ -91,7 +91,7 @@ export function Layout() {
                       <span className="loading-mark h-3.5 w-3.5" aria-hidden="true">
                         <span className="loading-mark-ring" />
                       </span>
-                      <span>Cargando…</span>
+                      <span>Entrando…</span>
                     </>
                   ) : (
                     'Entrar'

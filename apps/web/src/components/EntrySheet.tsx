@@ -36,21 +36,32 @@ export function useEntrySheet(): EntrySheetContextValue {
 
 export function EntrySheetProvider({ children }: { children: ReactNode }) {
   const { authenticated } = usePrivy();
-  const { pendingEntry, consumePendingEntry, setAuthenticated } = useEntrySignal();
+  const {
+    pendingEntry,
+    consumePendingEntry,
+    setAuthenticated,
+    openEntry: requestEntry,
+    setLoggingIn,
+  } = useEntrySignal();
   const [wantOpen, setWantOpen] = useState(false);
   useEffect(() => {
     setAuthenticated(authenticated);
-  }, [authenticated, setAuthenticated]);
-  useEffect(() => {
-    if (authenticated && pendingEntry) consumePendingEntry();
-  }, [authenticated, pendingEntry, consumePendingEntry]);
+    if (authenticated) {
+      setWantOpen(false);
+      setLoggingIn(false);
+      if (pendingEntry) consumePendingEntry();
+    }
+  }, [authenticated, pendingEntry, consumePendingEntry, setAuthenticated, setLoggingIn]);
   const open = (wantOpen || Boolean(pendingEntry)) && !authenticated;
 
   const value = useMemo(
     () => ({
-      openEntry: () => setWantOpen(true),
+      openEntry: () => {
+        requestEntry();
+        setWantOpen(true);
+      },
     }),
-    [],
+    [requestEntry],
   );
 
   return (
@@ -60,6 +71,7 @@ export function EntrySheetProvider({ children }: { children: ReactNode }) {
         <EntrySheet
           onClose={() => {
             setWantOpen(false);
+            setLoggingIn(false);
             if (pendingEntry) consumePendingEntry();
           }}
         />
@@ -91,25 +103,34 @@ function oauthErrorMessage(error: unknown): string {
 
 function EntrySheet({ onClose }: { onClose: () => void }) {
   const { sendCode, loginWithCode, state: emailState } = useLoginWithEmail();
+  const { setLoggingIn } = useEntrySignal();
   const [step, setStep] = useState<'entry' | 'code'>('entry');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { initOAuth, state: oauthState } = useLoginWithOAuth({
-    onError: (oauthError) => setError(oauthErrorMessage(oauthError)),
+    onError: (oauthError) => {
+      setLoggingIn(false);
+      setError(oauthErrorMessage(oauthError));
+    },
   });
 
   const sending = busy || emailState.status === 'sending-code' || emailState.status === 'submitting-code';
   const googleBusy = oauthState.status === 'loading';
+
+  useEffect(() => {
+    setLoggingIn(googleBusy || sending);
+  }, [googleBusy, sending, setLoggingIn]);
 
   const resetAndClose = useCallback(() => {
     setStep('entry');
     setEmail('');
     setCode('');
     setError(null);
+    setLoggingIn(false);
     onClose();
-  }, [onClose]);
+  }, [onClose, setLoggingIn]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {

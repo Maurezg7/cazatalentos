@@ -4,8 +4,10 @@ type EntrySignal = {
   openEntry: () => void;
   walletRequested: boolean;
   pendingEntry: boolean;
+  loggingIn: boolean;
   authenticated: boolean;
   consumePendingEntry: () => void;
+  setLoggingIn: (value: boolean) => void;
   setAuthenticated: (value: boolean) => void;
 };
 
@@ -14,21 +16,27 @@ const EntrySignalContext = createContext<EntrySignal | null>(null);
 export function EntrySignalProvider({ children }: { children: ReactNode }) {
   const [walletRequested, setWalletRequested] = useState(false);
   const [pendingEntry, setPendingEntry] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
 
   const value = useMemo<EntrySignal>(
     () => ({
       walletRequested,
       pendingEntry,
+      loggingIn,
       authenticated,
       openEntry: () => {
         setWalletRequested(true);
         setPendingEntry(true);
       },
-      consumePendingEntry: () => setPendingEntry(false),
+      consumePendingEntry: () => {
+        setPendingEntry(false);
+        setLoggingIn(false);
+      },
+      setLoggingIn,
       setAuthenticated,
     }),
-    [authenticated, pendingEntry, walletRequested],
+    [authenticated, loggingIn, pendingEntry, walletRequested],
   );
 
   return <EntrySignalContext.Provider value={value}>{children}</EntrySignalContext.Provider>;

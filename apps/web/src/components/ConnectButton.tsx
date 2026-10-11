@@ -6,19 +6,23 @@ import { useAccount } from 'wagmi';
 import { fetchOwnedArtist } from '../lib/api';
 import { Icon } from './Icon';
 import { useEntrySheet } from './EntrySheet';
+import { useEntrySignal } from '../lib/entry-signal';
 import { shortAddress } from '../lib/format';
 import { useSupporter } from '../lib/hooks';
 
 const enterPill =
-  'h-11 min-w-[44px] rounded-full bg-surface-container-high px-4 font-mono text-[0.6875rem] uppercase tracking-wide text-on-surface transition-colors hover:bg-surface-variant';
+  'inline-flex h-11 min-w-[44px] items-center justify-center gap-2 rounded-xl bg-terracotta px-4 font-body text-sm font-bold text-cream transition-colors disabled:opacity-70 dark:bg-terracotta-dark';
 
 export function ConnectButton() {
   const { ready, authenticated, logout } = usePrivy();
   const { openEntry } = useEntrySheet();
+  const { loggingIn } = useEntrySignal();
   const { address } = useAccount();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  // Keep a spinner while Privy boots, OAuth/email runs, or the embedded wallet is still arriving.
+  const entering = !ready || loggingIn || (authenticated && !address);
   const owned = useQuery({
     queryKey: ['owned-artist', address],
     queryFn: () => fetchOwnedArtist(address ?? ''),
@@ -44,13 +48,13 @@ export function ConnectButton() {
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, []);
 
-  if (!ready || (authenticated && !address)) {
+  if (entering) {
     return (
-      <button type="button" disabled aria-busy="true" className={`${enterPill} inline-flex items-center gap-2 opacity-70`}>
+      <button type="button" disabled aria-busy="true" className={enterPill}>
         <span className="loading-mark h-3.5 w-3.5" aria-hidden="true">
           <span className="loading-mark-ring" />
         </span>
-        <span>Cargando…</span>
+        <span>{authenticated ? 'Cargando…' : 'Entrando…'}</span>
       </button>
     );
   }
