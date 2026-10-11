@@ -1,5 +1,7 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { mediaUrl } from '../lib/api';
+import { prefetchArtist } from '../lib/prefetch';
 import { formatMonFromWei } from '../landing/pozo';
 import { admiteEntrada, avancePozo, chipPozo } from './selectores';
 import type { ArtistaExplorar } from './tipos';
@@ -10,7 +12,13 @@ function motivo(artista: ArtistaExplorar): string | null {
   return 'Este pozo ya no recibe marcas.';
 }
 
+function useWarmArtist() {
+  const queryClient = useQueryClient();
+  return (artistId: number) => prefetchArtist(queryClient, artistId);
+}
+
 export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
+  const warm = useWarmArtist();
   const portada = mediaUrl(artista.portada);
   const cerrado = motivo(artista);
   return (
@@ -31,11 +39,11 @@ export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
         </div>
         <p className="m-0 text-sm">{artista.pioneros} pioneros{artista.pozo ? ` · ${formatMonFromWei(/^-?\d+$/.test(artista.pozo.montoWei) ? BigInt(artista.pozo.montoWei) : 0n)}` : ''}</p>
         <div className="mt-auto flex gap-2">
-          <Link to={`/artist/${artista.id}`} className="landing-focus line-btn inline-flex h-11 flex-1 items-center justify-center text-sm font-semibold">Ver perfil</Link>
+          <Link to={`/artist/${artista.id}`} onMouseEnter={() => warm(artista.id)} onFocus={() => warm(artista.id)} className="landing-focus line-btn inline-flex h-11 flex-1 items-center justify-center text-sm font-semibold">Ver perfil</Link>
           {cerrado ? (
             <button type="button" disabled className="h-11 flex-1 rounded-[10px] text-sm opacity-60">{cerrado}</button>
           ) : (
-            <Link to={`/artist/${artista.id}`} className="landing-focus sun-btn inline-flex h-11 flex-1 items-center justify-center text-sm font-semibold">Estuve antes</Link>
+            <Link to={`/artist/${artista.id}`} onMouseEnter={() => warm(artista.id)} onFocus={() => warm(artista.id)} className="landing-focus sun-btn inline-flex h-11 flex-1 items-center justify-center text-sm font-semibold">Estuve antes</Link>
           )}
         </div>
       </div>
@@ -44,6 +52,7 @@ export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
 }
 
 export function ArtistaRow({ artista }: { artista: ArtistaExplorar }) {
+  const warm = useWarmArtist();
   const cerrado = motivo(artista);
   return (
     <article className="pozo-card grid min-w-0 items-center gap-3 p-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]" role="listitem">
@@ -60,8 +69,8 @@ export function ArtistaRow({ artista }: { artista: ArtistaExplorar }) {
         <p className="m-0 mt-1 text-sm">{artista.pioneros} pioneros</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Link to={`/artist/${artista.id}`} className="landing-focus line-btn inline-flex h-11 items-center px-3 text-sm font-semibold">Ver perfil</Link>
-        {cerrado ? <span className="tone-muted self-center text-sm">{cerrado}</span> : <Link to={`/artist/${artista.id}`} className="landing-focus sun-btn inline-flex h-11 items-center px-3 text-sm font-semibold">Estuve antes</Link>}
+        <Link to={`/artist/${artista.id}`} onMouseEnter={() => warm(artista.id)} onFocus={() => warm(artista.id)} className="landing-focus line-btn inline-flex h-11 items-center px-3 text-sm font-semibold">Ver perfil</Link>
+        {cerrado ? <span className="tone-muted self-center text-sm">{cerrado}</span> : <Link to={`/artist/${artista.id}`} onMouseEnter={() => warm(artista.id)} onFocus={() => warm(artista.id)} className="landing-focus sun-btn inline-flex h-11 items-center px-3 text-sm font-semibold">Estuve antes</Link>}
       </div>
     </article>
   );

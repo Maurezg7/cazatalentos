@@ -106,7 +106,14 @@ export class ArtistsService {
       pioneros: number;
       patrocinado: boolean;
       portada: string | null;
-      pozo: { montoWei: string; metaWei: null; cupoMaximo: null; cierraEn: string; abierto: true } | null;
+      pozo: {
+        id: number;
+        montoWei: string;
+        metaWei: null;
+        cupoMaximo: null;
+        cierraEn: string;
+        abierto: true;
+      } | null;
     }>;
     total: number;
     pagina: number;
@@ -156,6 +163,7 @@ export class ArtistsService {
         portada: row.cover ? `/api/media/artists/${row.id}/cover` : null,
         pozo: open
           ? {
+              id: open.id,
               montoWei: open.amountWei,
               metaWei: null,
               cupoMaximo: null,

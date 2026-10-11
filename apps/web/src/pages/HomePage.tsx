@@ -1,30 +1,20 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import type { PoolDto } from '../lib/api';
-import { fetchArtistPools, mediaUrl } from '../lib/api';
+import { mediaUrl } from '../lib/api';
 import { fetchExplorar } from '../explorar/fetch';
-import type { ArtistaExplorar, ConsultaExplorar } from '../explorar/tipos';
+import type { ArtistaExplorar } from '../explorar/tipos';
 import { HeroLanding } from '../landing/HeroLanding';
 import { FranjaConfianza } from '../landing/FranjaConfianza';
 import { PozosAbiertos } from '../landing/PozosAbiertos';
 import type { Pozo } from '../landing/pozo';
 import { readTotalArtists } from '../lib/public-read';
 import { useEntrySignal } from '../lib/entry-signal';
+import { HOME_CARTELERA, prefetchArtist } from '../lib/prefetch';
 import { Marquee } from '../effects/Marquee';
 import { ScrollReveal } from '../effects/ScrollReveal';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Icon } from '../components/Icon';
-
-const CARTELERA: ConsultaExplorar = {
-  q: '',
-  ciudades: [],
-  generos: [],
-  estados: [],
-  orden: 'pioneros',
-  vista: 'grilla',
-  pagina: 1,
-};
 
 const RegisterArtistModal = lazy(() =>
   import('../components/RegisterArtistModal').then((m) => ({ default: m.RegisterArtistModal })),
@@ -32,33 +22,27 @@ const RegisterArtistModal = lazy(() =>
 
 export function HomePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const { authenticated } = useEntrySignal();
   const [registerOpen, setRegisterOpen] = useState(false);
   const cartelera = useQuery({
     queryKey: ['home-cartelera'],
-    queryFn: () => fetchExplorar(CARTELERA),
+    queryFn: () => fetchExplorar(HOME_CARTELERA),
+    staleTime: 60_000,
   });
   const artistas = cartelera.data?.items ?? [];
-  const artistIds = artistas.map((artista) => artista.id);
-  const poolsQuery = useQuery({
-    queryKey: ['home-pools', artistIds],
-    enabled: artistIds.length > 0,
-    queryFn: async () =>
-      Promise.all(
-        artistIds.map(async (id) => ({
-          id,
-          pools: await fetchArtistPools(id),
-        })),
-      ),
-  });
-  useQuery({ queryKey: ['total-artists'], queryFn: readTotalArtists, staleTime: 30_000 });
+  useQuery({ queryKey: ['total-artists'], queryFn: readTotalArtists, staleTime: 60_000 });
 
-  const pozos = openPools(artistas, poolsQuery.data ?? []);
+  const pozos = openPoolsFromCartelera(artistas);
   const lead = artistas[0];
   const patrocinados = artistas.filter((artista) => artista.patrocinado);
-  const loadingArtistas = cartelera.isLoading;
-  const loadingPozos = cartelera.isLoading || (artistIds.length > 0 && poolsQuery.isLoading);
+  const loadingArtistas = cartelera.isLoading && !cartelera.data;
+  const loadingPozos = loadingArtistas;
+
+  function warmArtist(artistId: number) {
+    prefetchArtist(queryClient, artistId);
+  }
 
   const showRegister = registerOpen || (params.get('alta') === '1' && authenticated);
 
@@ -80,7 +64,7 @@ export function HomePage() {
         pozosAbiertos={pozos.length}
         onExplorar="/explorar"
       />
-      <SponsoredCarousel rows={patrocinados} loading={loadingArtistas} />
+      <SponsoredCarousel rows={patrocinados} loading={loadingArtistas} onWarmArtist={warmArtist} />
 
       <ScrollReveal>
       <section id="como" className="flex flex-col gap-4">
@@ -106,7 +90,13 @@ export function HomePage() {
         ) : (
           <div className="flex min-w-0 snap-x gap-3 overflow-x-auto pb-2">
             {artistas.map((artista) => (
-              <Link key={artista.id} to={`/artist/${artista.id}`} className="ticket w-56 shrink-0 snap-start p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta">
+              <Link
+                key={artista.id}
+                to={`/artist/${artista.id}`}
+                onMouseEnter={() => warmArtist(artista.id)}
+                onFocus={() => warmArtist(artista.id)}
+                className="ticket w-56 shrink-0 snap-start p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta"
+              >
                 <div className="relative h-36 overflow-hidden rounded-xl bg-ink/10">
                   {artista.portada ? (
                     <img src={mediaUrl(artista.portada) || ''} alt="" className="h-full w-full object-cover" />
@@ -133,10 +123,9 @@ export function HomePage() {
       <PozosAbiertos
         pozos={pozos}
         loading={loadingPozos}
-        error={cartelera.isError || poolsQuery.isError}
+        error={cartelera.isError}
         onRetry={() => {
           void cartelera.refetch();
-          void poolsQuery.refetch();
         }}
       />
       <FranjaConfianza />
@@ -172,38 +161,38 @@ export function HomePage() {
   );
 }
 
-function openPools(
-  artistas: ArtistaExplorar[],
-  poolsByArtist: Array<{ id: number; pools: PoolDto[] }>,
-): Pozo[] {
+function openPoolsFromCartelera(artistas: ArtistaExplorar[]): Pozo[] {
   return artistas.flatMap((artista) => {
-    const pools = poolsByArtist.find((row) => row.id === artista.id)?.pools ?? [];
-    return pools
-      .filter((pool) => pool.status === 'Open')
-      .map((pool) => ({
-        id: pool.id,
+    const pozo = artista.pozo;
+    if (!pozo?.abierto) return [];
+    return [
+      {
+        id: pozo.id ?? artista.id,
         artistaId: artista.id,
         artista: artista.nombre,
         ciudad: artista.ciudad === 'Sin ciudad' ? 'Salta' : artista.ciudad,
-        montoWei: BigInt(pool.amountWei || '0'),
-        metaWei: null,
-        metaTexto: pool.milestoneDescription || 'la meta del artista',
-        pioneros: pool.supportersAtOpen,
-        cupoMaximo: null,
-        cierraEn: new Date(pool.deadline).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' }),
+        montoWei: BigInt(pozo.montoWei || '0'),
+        metaWei: pozo.metaWei ? BigInt(pozo.metaWei) : null,
+        metaTexto: 'la meta del artista',
+        pioneros: artista.pioneros,
+        cupoMaximo: pozo.cupoMaximo,
+        cierraEn: new Date(pozo.cierraEn).toLocaleDateString('es-AR', { day: 'numeric', month: 'long' }),
         portada: mediaUrl(artista.portada),
         estado: 'en_curso' as const,
         abierto: true,
-      }));
+      },
+    ];
   });
 }
 
 function SponsoredCarousel({
   rows,
   loading,
+  onWarmArtist,
 }: {
   rows: ArtistaExplorar[];
   loading: boolean;
+  onWarmArtist: (artistId: number) => void;
 }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -274,8 +263,22 @@ function SponsoredCarousel({
                     {row.ciudad} · {row.pioneros === 1 ? '1 pionero' : `${row.pioneros} pioneros`}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <Link to={`/artist/${row.id}`} className="inline-flex h-11 items-center rounded-xl bg-terracotta px-4 text-sm font-bold text-cream dark:bg-terracotta-dark">Ver perfil</Link>
-                    <Link to={`/artist/${row.id}`} className="inline-flex h-11 items-center rounded-xl border border-cream px-4 text-sm font-bold">Estuve antes</Link>
+                    <Link
+                      to={`/artist/${row.id}`}
+                      onMouseEnter={() => onWarmArtist(row.id)}
+                      onFocus={() => onWarmArtist(row.id)}
+                      className="inline-flex h-11 items-center rounded-xl bg-terracotta px-4 text-sm font-bold text-cream dark:bg-terracotta-dark"
+                    >
+                      Ver perfil
+                    </Link>
+                    <Link
+                      to={`/artist/${row.id}`}
+                      onMouseEnter={() => onWarmArtist(row.id)}
+                      onFocus={() => onWarmArtist(row.id)}
+                      className="inline-flex h-11 items-center rounded-xl border border-cream px-4 text-sm font-bold"
+                    >
+                      Estuve antes
+                    </Link>
                   </div>
                 </div>
               </article>

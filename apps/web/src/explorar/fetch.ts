@@ -6,7 +6,17 @@ export async function fetchExplorar(consulta: ConsultaExplorar): Promise<PaginaE
   const params = consultaToParams(consulta);
   params.set('orden', consulta.orden);
   params.set('pagina', String(consulta.pagina));
-  const response = await fetch(`${API_BASE}/api/artists?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
-  if (!response.ok) throw new Error('No se pudo leer la cartelera');
-  return (await response.json()) as PaginaExplorar;
+  const load = async () => {
+    const response = await fetch(`${API_BASE}/api/artists?${params.toString()}`, {
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!response.ok) throw new Error('No se pudo leer la cartelera');
+    return (await response.json()) as PaginaExplorar;
+  };
+  try {
+    return await load();
+  } catch {
+    // One retry helps after a Render cold start.
+    return load();
+  }
 }

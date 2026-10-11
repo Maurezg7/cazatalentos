@@ -10,10 +10,11 @@ export function mediaUrl(value: string | null | undefined): string | null {
 
 async function apiGet<T>(path: string, fallback: T): Promise<T> {
   const requestId = createRequestId();
-  try {
+  const attempt = async (): Promise<T> => {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: { 'x-request-id': requestId },
-      signal: AbortSignal.timeout(4000),
+      // Render free tier can cold-start past 4s; keep a longer budget and retry once.
+      signal: AbortSignal.timeout(12_000),
     });
     if (!res.ok) {
       const body = await readErrorBody(res);
@@ -28,12 +29,30 @@ async function apiGet<T>(path: string, fallback: T): Promise<T> {
       return fallback;
     }
     return (await res.json()) as T;
+  };
+
+  try {
+    return await attempt();
   } catch (error: unknown) {
+    const cause = error instanceof Error ? error.name : 'unknown';
+    if (cause === 'TimeoutError' || cause === 'AbortError') {
+      try {
+        return await attempt();
+      } catch (retryError: unknown) {
+        log.warn('api_get_error', {
+          path,
+          requestId,
+          layer: 'api',
+          cause: retryError instanceof Error ? retryError.name : 'unknown',
+        });
+        return fallback;
+      }
+    }
     log.warn('api_get_error', {
       path,
       requestId,
       layer: 'api',
-      cause: error instanceof Error ? error.name : 'unknown',
+      cause,
     });
     return fallback;
   }

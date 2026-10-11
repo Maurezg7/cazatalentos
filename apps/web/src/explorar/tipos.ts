@@ -3,6 +3,8 @@ export type OrdenExplorar = 'meta' | 'cierra' | 'pioneros' | 'nuevos' | 'az';
 export type VistaExplorar = 'grilla' | 'lista';
 
 export type PozoExplorar = {
+  /** Present after API deploy that includes open-pool ids. */
+  id?: number;
   montoWei: string;
   metaWei: string | null;
   cupoMaximo: number | null;

@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
 import { LoadingState } from './LoadingState';
 import { hasWalletSession, useEntrySignal } from '../lib/entry-signal';
+import { WalletReadyProvider } from '../lib/wallet-ready';
 
 const ConnectButton = lazy(() => import('./ConnectButton').then((m) => ({ default: m.ConnectButton })));
 const EntrySheetProvider = lazy(() =>
@@ -18,9 +19,13 @@ export function Layout() {
   const { openEntry, walletRequested } = useEntrySignal();
   const [WalletStack, setWalletStack] = useState<ComponentType<{ children: ReactNode }> | null>(null);
   const needsWalletNow =
-    walletRequested || pathname.startsWith('/artist') || pathname.startsWith('/pool') || hasWalletSession();
-  // Warm Privy on the home so "Ver perfil" does not sit on a blank loader.
-  const shouldLoad = needsWalletNow || pathname === '/' || pathname === '/explorar' || pathname === '/como-funciona';
+    walletRequested || pathname.startsWith('/pool') || hasWalletSession();
+  const shouldLoad =
+    needsWalletNow ||
+    pathname === '/' ||
+    pathname.startsWith('/artist') ||
+    pathname === '/explorar' ||
+    pathname === '/como-funciona';
 
   useEffect(() => {
     if (!shouldLoad || WalletStack) return;
@@ -32,21 +37,21 @@ export function Layout() {
     };
     let idleId: number | undefined;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    if (needsWalletNow) {
+    if (needsWalletNow || pathname.startsWith('/artist')) {
       load();
     } else if (typeof window.requestIdleCallback === 'function') {
-      idleId = window.requestIdleCallback(load, { timeout: 1800 });
+      idleId = window.requestIdleCallback(load, { timeout: 1200 });
     } else {
-      timeoutId = setTimeout(load, 400);
+      timeoutId = setTimeout(load, 200);
     }
     return () => {
       cancelled = true;
       if (idleId !== undefined) window.cancelIdleCallback(idleId);
       if (timeoutId !== undefined) clearTimeout(timeoutId);
     };
-  }, [shouldLoad, needsWalletNow, WalletStack]);
+  }, [shouldLoad, needsWalletNow, pathname, WalletStack]);
 
-  const shell = (holdOutlet = false) => (
+  const frame = (
     <div className="flex min-h-dvh justify-center bg-paper font-body text-ink dark:bg-night dark:text-cream">
       <div className="relative flex min-h-dvh w-full min-w-0 max-w-[480px] flex-col md:max-w-none">
         <header className="app-header sticky top-0 z-50 border-b border-ink/10 pt-[env(safe-area-inset-top,0px)] dark:border-cream/10">
@@ -112,11 +117,7 @@ export function Layout() {
           ) : null}
         </header>
         <main className="min-w-0 flex-1 px-4 pb-10 md:px-8 md:pb-16 xl:px-12">
-          {holdOutlet || (needsWalletNow && !WalletStack) ? (
-            <LoadingState label="Cargando…" size="sm" />
-          ) : (
-            <Outlet />
-          )}
+          <Outlet />
         </main>
         {walletRequested && !WalletStack ? (
           <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 lg:items-center">
@@ -129,12 +130,16 @@ export function Layout() {
     </div>
   );
 
-  if (!WalletStack) return shell();
+  if (!WalletStack) {
+    return <WalletReadyProvider ready={false}>{frame}</WalletReadyProvider>;
+  }
 
   return (
     <WalletStack>
-      <Suspense fallback={shell(true)}>
-        <EntrySheetProvider>{shell()}</EntrySheetProvider>
+      <Suspense fallback={<WalletReadyProvider ready={false}>{frame}</WalletReadyProvider>}>
+        <EntrySheetProvider>
+          <WalletReadyProvider ready>{frame}</WalletReadyProvider>
+        </EntrySheetProvider>
       </Suspense>
     </WalletStack>
   );
