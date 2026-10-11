@@ -5,6 +5,13 @@ export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
 export function mediaUrl(value: string | null | undefined): string | null {
   if (!value) return null;
+  // Artist photos/covers ship with the web app under /artists — the API media
+  // disk on Render is ephemeral, so remap those paths to the static files.
+  const artistMedia = value.match(/\/api\/media\/artists\/(\d+)\/(photo|cover)(?:\?.*)?$/);
+  if (artistMedia) {
+    return `/artists/${artistMedia[1]}-${artistMedia[2]}.jpg`;
+  }
+  if (value.startsWith('/artists/')) return value;
   return value.startsWith('/api/') ? `${API_BASE}${value}` : value;
 }
 

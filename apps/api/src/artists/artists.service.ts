@@ -501,7 +501,7 @@ export class ArtistsService {
     current: string | null,
   ): Promise<string | null> {
     if (!current) return null;
-    if (isHttpUrl(current)) return current;
+    if (isHttpUrl(current) || current.startsWith('/artists/')) return current;
     if (!current.startsWith('data:')) return `/api/media/artists/${id}/${kind}`;
     const fileName = await this.writeArtistImage(id, kind, current);
     await this.prisma.artist.update({ where: { id }, data: { [kind]: fileName } });
@@ -659,7 +659,7 @@ function isHttpUrl(value: string): boolean {
 
 function publicArtistImage(id: number, kind: 'photo' | 'cover', current: string | null): string | null {
   if (!current) return null;
-  if (isHttpUrl(current)) return current;
+  if (isHttpUrl(current) || current.startsWith('/artists/')) return current;
   if (current.startsWith('data:')) return null;
   return `/api/media/artists/${id}/${kind}`;
 }

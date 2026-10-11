@@ -20,21 +20,13 @@ function loadDatabaseUrl() {
   return value;
 }
 
-/** Atmosphere photos (Unsplash License). Not claimed as the real artists. */
-const IMG = {
-  guitarClose: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=900&q=80',
-  singerMic: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=80',
-  bandWarm: 'https://images.unsplash.com/photo-1470225620780-dba8ba35e997?auto=format&fit=crop&w=1200&q=80',
-  desertDusk: 'https://images.unsplash.com/photo-1509316785289-5072079d0e6e?auto=format&fit=crop&w=1200&q=80',
-  mountains: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
-  acoustic: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=900&q=80',
-  crowd: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=80',
-  nightStage: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1200&q=80',
-  violin: 'https://images.unsplash.com/photo-1460039230329-eb280fcf0321?auto=format&fit=crop&w=900&q=80',
-  vinyl: 'https://images.unsplash.com/photo-1483412033650-1015dfbaf8e1?auto=format&fit=crop&w=900&q=80',
-  street: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80',
-  firelight: 'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?auto=format&fit=crop&w=1200&q=80',
-};
+/** Static files shipped with the web app at apps/web/public/artists/. */
+function artistPhoto(id) {
+  return `/artists/${id}-photo.jpg`;
+}
+function artistCover(id) {
+  return `/artists/${id}-cover.jpg`;
+}
 
 const PLACEHOLDER_OWNER = '0x00000000000000000000000000000000000000c1';
 
@@ -45,8 +37,8 @@ const CATALOG = [
     keepOwner: true,
     name: 'Los Copleros del Valle',
     metadataURI: 'Los Copleros del Valle',
-    photo: IMG.acoustic,
-    cover: IMG.mountains,
+    photo: artistPhoto(1),
+    cover: artistCover(1),
     bio: 'Folklore del valle. Cantamos lo que el cerro guarda antes de que se llene la peña.',
     bioWash: '#1c2416',
     bioInk: '#dbe2ce',
@@ -69,8 +61,8 @@ const CATALOG = [
     keepOwner: true,
     name: 'Mauro',
     metadataURI: 'Mauro',
-    photo: IMG.singerMic,
-    cover: IMG.desertDusk,
+    photo: artistPhoto(2),
+    cover: artistCover(2),
     bio: 'Canción nueva del NOA. Quien llegó primero ya tiene número en el contrato.',
     bioWash: '#241c16',
     bioInk: '#f0e2d0',
@@ -91,8 +83,8 @@ const CATALOG = [
     id: 1001,
     name: 'Zamba Lunar',
     metadataURI: 'Zamba Lunar',
-    photo: IMG.violin,
-    cover: IMG.nightStage,
+    photo: artistPhoto(1001),
+    cover: artistCover(1001),
     bio: 'Zambas de luna llena entre Cafayate y el camino al cerro.',
     bioWash: '#1a1c28',
     bioInk: '#e8e4f5',
@@ -115,8 +107,8 @@ const CATALOG = [
     id: 1002,
     name: 'El Chango Nublado',
     metadataURI: 'El Chango Nublado',
-    photo: IMG.guitarClose,
-    cover: IMG.firelight,
+    photo: artistPhoto(1002),
+    cover: artistCover(1002),
     bio: 'Chacareras nubladas y bombo legüero en Cachi.',
     bioWash: '#221810',
     bioInk: '#f3e6d4',
@@ -139,8 +131,8 @@ const CATALOG = [
     id: 1003,
     name: 'Dúo Algarrobal',
     metadataURI: 'Dúo Algarrobal',
-    photo: IMG.vinyl,
-    cover: IMG.street,
+    photo: artistPhoto(1003),
+    cover: artistCover(1003),
     bio: 'Dos voces, una guitarra y el algarrobo como testigo.',
     bioWash: '#1e2418',
     bioInk: '#e4ecd8',
@@ -163,8 +155,8 @@ const CATALOG = [
     id: 1004,
     name: 'Mate Eléctrico',
     metadataURI: 'Mate Eléctrico',
-    photo: IMG.bandWarm,
-    cover: IMG.crowd,
+    photo: artistPhoto(1004),
+    cover: artistCover(1004),
     bio: 'Folklore con pedales. Mate amargo, distorsión dulce.',
     bioWash: '#1c1820',
     bioInk: '#f0e8ff',
@@ -187,8 +179,8 @@ const CATALOG = [
     id: 1005,
     name: 'Las Voces del Cerro',
     metadataURI: 'Las Voces del Cerro',
-    photo: IMG.acoustic,
-    cover: IMG.mountains,
+    photo: artistPhoto(1005),
+    cover: artistCover(1005),
     bio: 'Coro de peña. Voces que suben más alto que el cerro.',
     bioWash: '#182018',
     bioInk: '#e6f0e4',
@@ -204,8 +196,8 @@ const CATALOG = [
     id: 1006,
     name: 'Huayra Nueva',
     metadataURI: 'Huayra Nueva',
-    photo: IMG.singerMic,
-    cover: IMG.desertDusk,
+    photo: artistPhoto(1006),
+    cover: artistCover(1006),
     bio: 'Viento nuevo desde Jujuy. Copla, electrónica suave y camino.',
     bioWash: '#201818',
     bioInk: '#f5e8dc',
