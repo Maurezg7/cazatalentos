@@ -15,7 +15,12 @@ describe('ComoFuncionaPage', () => {
     button.focus();
     fireEvent.click(button);
     expect(button.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText(/Votan los pioneros/).textContent).toContain('pioneros');
+    expect(screen.getByText(/Votan los pioneros/).textContent).toContain('quórum del 20%');
+    const contrato = screen.getByRole('link', { name: 'Ver el contrato en Monadscan' });
+    expect(contrato.getAttribute('href')).toBe(
+      'https://testnet.monadscan.com/address/0x899c15654d9ffA753eD0C008831f41F3473B40d1',
+    );
+    expect(screen.queryByText(/queda pendiente/)).toBeNull();
     fireEvent.click(button);
     expect(button.getAttribute('aria-expanded')).toBe('false');
   });

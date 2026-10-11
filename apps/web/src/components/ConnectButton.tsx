@@ -46,8 +46,11 @@ export function ConnectButton() {
 
   if (!ready || (authenticated && !address)) {
     return (
-      <button type="button" disabled aria-busy="true" className={`${enterPill} opacity-70`}>
-        Cargando…
+      <button type="button" disabled aria-busy="true" className={`${enterPill} inline-flex items-center gap-2 opacity-70`}>
+        <span className="loading-mark h-3.5 w-3.5" aria-hidden="true">
+          <span className="loading-mark-ring" />
+        </span>
+        <span>Cargando…</span>
       </button>
     );
   }

@@ -1,5 +1,4 @@
-// El archivo fuente-como-funciona.md no estaba en el repo.
-// Este texto sigue el contrato Cazatalentos.sol. Lo marcado TODO(validar) no es definitivo.
+// Textos alineados con el contrato desplegado en Monad Testnet.
 
 export const INTRODUCCION =
   'Cazatalentos es el registro de Salta donde un fan deja su marca en un artista del NOA antes de que se llene la fila, con una entrada numerada y un depósito en el contrato.';
@@ -65,7 +64,8 @@ export const GLOSARIO = [
 export const FAQ = [
   {
     pregunta: '¿Cuánto dinero pongo?',
-    respuesta: 'Al menos el mínimo que fijó el despliegue del contrato. Esta página no publica ese número como definitivo.',
+    respuesta:
+      'Al menos 0,001 MON. Ese mínimo lo fijó el contrato desplegado en Monad Testnet. El depósito queda aparte del pozo.',
   },
   {
     pregunta: '¿Qué recibo?',
@@ -77,7 +77,8 @@ export const FAQ = [
   },
   {
     pregunta: '¿Quién decide si el artista cumplió la meta?',
-    respuesta: 'El artista presenta la evidencia. Votan los pioneros que ya estaban cuando se abrió el pozo, cada uno con su peso. Quórum y mayoría son parámetros del contrato desplegado, no de esta página.',
+    respuesta:
+      'El artista presenta la evidencia y se abre una votación de 48 horas. Votan los pioneros que ya estaban cuando se abrió el pozo, cada uno con su peso. Hace falta quórum del 20% del peso elegible y mayoría estricta: los votos a favor tienen que superar la mitad de los votos emitidos. Un empate 50/50 se rechaza.',
   },
   {
     pregunta: '¿Qué pasa si no se cumple?',
@@ -104,7 +105,11 @@ export const VIDEO = {
     'Cazatalentos anota quién llegó antes. Dejás un depósito en el contrato y recibís un número. Si el artista abre un pozo y los pioneros aprueban la meta, podés reclamar una parte de ese pozo. Si no se aprueba, no cobrás del pozo y tu depósito se retira cuando no haya un pozo activo.',
 };
 
-// TODO(validar): el contrato desplegado no está leído desde la página; mínimo, quórum y mayoría son inmutables del deploy.
+export const CONTRATO_DESPLEGADO = {
+  address: '0x899c15654d9ffA753eD0C008831f41F3473B40d1',
+  explorer: 'https://testnet.monadscan.com/address/0x899c15654d9ffA753eD0C008831f41F3473B40d1',
+} as const;
+
 export const SIMULADOR_CONFIG = {
   depositoMinWei: 1_000_000_000_000_000n,
   depositoMaxWei: 1_000_000_000_000_000_000n,

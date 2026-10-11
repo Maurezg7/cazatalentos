@@ -13,8 +13,16 @@ async function bootstrap(): Promise<void> {
     { bufferLogs: true },
   );
   app.useLogger(app.get(Logger));
+  const webOrigins = [
+    ...String(rawEnv.WEB_ORIGIN)
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ];
   app.enableCors({
-    origin: [rawEnv.WEB_ORIGIN as string, 'http://localhost:5173'],
+    origin: [...new Set(webOrigins)],
     credentials: false,
     methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-request-id', 'x-indexer-secret'],

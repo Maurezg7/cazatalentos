@@ -28,10 +28,11 @@ export function ActionButton({
       className={`${base} ${styles}`}
     >
       {loading ? (
-        <span className="inline-flex items-center justify-center gap-1" aria-label="Cargando">
-          <span className="animate-pulse">.</span>
-          <span className="animate-pulse [animation-delay:150ms]">.</span>
-          <span className="animate-pulse [animation-delay:300ms]">.</span>
+        <span className="inline-flex items-center justify-center gap-2" aria-label="Cargando">
+          <span className="loading-mark h-4 w-4" aria-hidden="true">
+            <span className="loading-mark-ring" />
+          </span>
+          <span>Cargando…</span>
         </span>
       ) : (
         label

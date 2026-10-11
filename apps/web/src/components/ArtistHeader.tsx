@@ -58,7 +58,7 @@ export function ArtistHeader({
           <div className="min-w-0 pb-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1
-                className={`text-4xl font-semibold leading-none tracking-tight md:text-5xl ${nameFontClass(nameFont)}`}
+                className={`break-words text-3xl font-semibold leading-none tracking-tight sm:text-4xl md:text-5xl ${nameFontClass(nameFont)}`}
                 style={{ color: readableInk(bioInk, bioWash) }}
               >
                 {name}

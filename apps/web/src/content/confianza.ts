@@ -3,26 +3,25 @@ export type ConfianzaBloque = {
   texto: string;
 };
 
-// TODO(contenido): validar con contrato antes de publicar.
 export const CONFIANZA: ConfianzaBloque[] = [
   {
     titulo: 'Depósito chico',
-    // TODO(contenido): validar con contrato
-    texto: 'Al marcar “Estuve antes” dejás un depósito en el pozo de ese artista. El mínimo lo fija el contrato, no esta página.',
+    texto:
+      'Al marcar “Estuve antes” dejás al menos 0,001 MON. Ese depósito queda en el contrato, separado del pozo que abre el artista.',
   },
   {
     titulo: 'Custodia',
-    // TODO(contenido): validar con contrato
-    texto: 'El pozo queda en el contrato en Monad. Esta web solo muestra el estado; no guarda ni mueve la plata.',
+    texto:
+      'El depósito del fan y el pozo del artista quedan en el contrato en Monad. Esta web solo muestra el estado; no guarda ni mueve la plata.',
   },
   {
     titulo: 'Si no se cumple la meta',
-    // TODO(contenido): validar con contrato. reclaimPool devuelve el monto al artista, no a los fans.
-    texto: 'Si el hito se rechaza o vence el plazo sin declararse, el contrato permite que el artista retire el pozo. No está prometida una devolución automática a los pioneros.',
+    texto:
+      'Si el hito se rechaza o vence el plazo sin declararse, el artista puede retirar el pozo. Tu depósito no se reparte: lo retirás cuando ese artista no tenga un pozo activo.',
   },
   {
     titulo: 'Qué es un pionero',
-    // TODO(contenido): validar con contrato
-    texto: 'Quien firma antes recibe un número de entrada que asigna el contrato en la transacción. Ese número no se compra y otro puede adelantarse.',
+    texto:
+      'Quien firma recibe el siguiente número. El contrato le da peso 5 hasta el puesto 10, 3 hasta el 50, 2 hasta el 200 y 1 después. Ese número no se compra.',
   },
 ];

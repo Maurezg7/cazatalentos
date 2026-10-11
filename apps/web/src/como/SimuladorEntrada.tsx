@@ -23,7 +23,7 @@ export function SimuladorEntrada() {
   if (!SIMULADOR_HABILITADO) {
     return (
       <p className="m-0 rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--panel)] p-4 text-sm">
-        El simulador está apagado. Las reglas de reparto todavía están en validación y esta página no muestra números de ejemplo como si fueran reales.
+        El simulador está apagado. El mínimo, el quórum y la mayoría están en el contrato; esta página no inventa un reparto de ejemplo.
       </p>
     );
   }

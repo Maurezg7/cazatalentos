@@ -127,7 +127,7 @@ export function ExplorarPage() {
       <div className="lg:grid lg:grid-cols-[260px_1fr] lg:gap-6">
         <aside className="sticky top-20 hidden self-start lg:block">{panel}</aside>
         <div>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="mb-3 flex min-w-0 flex-wrap items-center gap-2">
             <button ref={filtrosButton} type="button" className="landing-focus line-btn h-11 px-3 text-sm font-semibold lg:hidden" onClick={() => setFiltrosAbiertos(true)}>
               Filtros ({consulta.ciudades.length + consulta.estados.length})
             </button>
@@ -135,12 +135,12 @@ export function ExplorarPage() {
               <button key={chip.key} type="button" className="landing-focus line-btn inline-flex h-9 items-center gap-1 px-3 text-sm" onClick={chip.clear}>{chip.label} <Icon name="x" className="h-3 w-3" /></button>
             ))}
             {activos.length > 0 ? <button type="button" className="landing-focus h-9 px-2 text-sm underline" onClick={() => write({ ...consulta, ciudades: [], estados: [], generos: [], q: '', pagina: 1 })}>Limpiar todo</button> : null}
-            <label className="ml-auto text-sm">
+            <label className="ml-auto min-w-0 max-w-full text-sm">
               <span className="sr-only">Ordenar</span>
               <select
                 value={consulta.orden}
                 onChange={(event) => write({ ...consulta, orden: event.target.value as OrdenExplorar, pagina: 1 })}
-                className="landing-focus h-11 rounded-[10px] bg-transparent px-2"
+                className="landing-focus h-11 w-full max-w-full rounded-[10px] bg-transparent px-2 sm:w-auto"
                 style={{ color: 'var(--text)', borderColor: 'var(--line)' }}
               >
                 {ORDENES.map((orden) => <option key={orden.id} value={orden.id}>{orden.label}</option>)}

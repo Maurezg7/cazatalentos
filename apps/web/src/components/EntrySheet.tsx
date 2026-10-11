@@ -68,14 +68,37 @@ export function EntrySheetProvider({ children }: { children: ReactNode }) {
   );
 }
 
+function oauthErrorMessage(error: unknown): string {
+  const record = typeof error === 'object' && error !== null ? (error as Record<string, unknown>) : null;
+  const code = String(record?.code ?? '');
+  const text = [
+    record?.error,
+    record?.message,
+    error instanceof Error ? error.message : null,
+    typeof error === 'string' ? error : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  if (code === 'invalid_origin' || /origin not allowed/i.test(text)) {
+    return 'Google no acepta este dominio todavía. En Privy → Configuration → Domains agregá https://cazatalentos.vercel.app y, si desarrollás, http://localhost:5173. También activá Google en Login methods.';
+  }
+  if (/popup|blocked/i.test(text)) {
+    return 'El navegador bloqueó la ventana de Google. Permití popups e intentá de nuevo.';
+  }
+  return 'No se pudo entrar con Google. Probá de nuevo.';
+}
+
 function EntrySheet({ onClose }: { onClose: () => void }) {
   const { sendCode, loginWithCode, state: emailState } = useLoginWithEmail();
-  const { initOAuth, state: oauthState } = useLoginWithOAuth();
   const [step, setStep] = useState<'entry' | 'code'>('entry');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { initOAuth, state: oauthState } = useLoginWithOAuth({
+    onError: (oauthError) => setError(oauthErrorMessage(oauthError)),
+  });
 
   const sending = busy || emailState.status === 'sending-code' || emailState.status === 'submitting-code';
   const googleBusy = oauthState.status === 'loading';
@@ -105,8 +128,8 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
     setError(null);
     try {
       await initOAuth({ provider: 'google' });
-    } catch {
-      setError('No se pudo entrar con Google. Probá de nuevo.');
+    } catch (oauthError) {
+      setError(oauthErrorMessage(oauthError));
     }
   }
 
@@ -198,7 +221,13 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
                 disabled={googleBusy || sending}
                 className="sun-btn landing-focus flex h-11 w-full items-center justify-center gap-3 px-4 text-sm font-semibold disabled:opacity-50"
               >
-                <GoogleMark />
+                {googleBusy ? (
+                  <span className="loading-mark h-4 w-4" aria-hidden="true">
+                    <span className="loading-mark-ring" />
+                  </span>
+                ) : (
+                  <GoogleMark />
+                )}
                 <span>{googleBusy ? 'Entrando…' : 'Continuar con Google'}</span>
               </button>
 
@@ -248,7 +277,12 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
         )}
 
         {step === 'entry' && error ? (
-          <p className="mt-3 text-center text-sm" role="alert">{error}</p>
+          <p
+            className="mt-3 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-left text-sm leading-relaxed text-[var(--ink)]"
+            role="alert"
+          >
+            {error}
+          </p>
         ) : null}
 
         {step === 'entry' ? (

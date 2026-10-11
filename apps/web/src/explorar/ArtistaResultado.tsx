@@ -21,7 +21,7 @@ export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
         {artista.patrocinado ? (
           <span className="absolute left-2 top-2 rounded-full bg-[#1c1814] px-2 py-1 text-xs font-semibold text-[#f3e9d6]">Patrocinado</span>
         ) : null}
-        <h2 className="display-num absolute bottom-2 left-3 right-3 m-0 text-xl uppercase text-[#f3e9d6]">{artista.nombre}</h2>
+        <h2 className="display-num absolute bottom-2 left-3 right-3 m-0 break-words text-xl uppercase text-[#f3e9d6]">{artista.nombre}</h2>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <p className="tone-muted m-0 text-sm">{artista.ciudad}</p>
@@ -46,10 +46,10 @@ export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
 export function ArtistaRow({ artista }: { artista: ArtistaExplorar }) {
   const cerrado = motivo(artista);
   return (
-    <article className="pozo-card grid items-center gap-3 p-3 sm:grid-cols-[1.4fr_1fr_1fr_auto]" role="listitem">
-      <div>
+    <article className="pozo-card grid min-w-0 items-center gap-3 p-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]" role="listitem">
+      <div className="min-w-0">
         {artista.patrocinado ? <p className="m-0 text-xs font-semibold uppercase">Patrocinado</p> : null}
-        <h2 className="display-num m-0 text-2xl uppercase">{artista.nombre}</h2>
+        <h2 className="display-num m-0 break-words text-2xl uppercase">{artista.nombre}</h2>
         <p className="tone-muted m-0 text-sm">{artista.ciudad}</p>
       </div>
       <p className="m-0 text-sm">{chipPozo(artista)}</p>
@@ -59,7 +59,7 @@ export function ArtistaRow({ artista }: { artista: ArtistaExplorar }) {
         </div>
         <p className="m-0 mt-1 text-sm">{artista.pioneros} pioneros</p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Link to={`/artist/${artista.id}`} className="landing-focus line-btn inline-flex h-11 items-center px-3 text-sm font-semibold">Ver perfil</Link>
         {cerrado ? <span className="tone-muted self-center text-sm">{cerrado}</span> : <Link to={`/artist/${artista.id}`} className="landing-focus sun-btn inline-flex h-11 items-center px-3 text-sm font-semibold">Estuve antes</Link>}
       </div>

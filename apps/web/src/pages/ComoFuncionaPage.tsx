@@ -4,7 +4,7 @@ import { LineaDeTiempoEjemplo } from '../como/LineaDeTiempoEjemplo';
 import { PasoDetallado } from '../como/PasoDetallado';
 import { SimuladorEntrada } from '../como/SimuladorEntrada';
 import { VideoExplicativo } from '../como/VideoExplicativo';
-import { EJEMPLO, ESCENARIOS, FAQ, GLOSARIO, INTRODUCCION, PASOS, VIDEO } from '../content/como-funciona';
+import { CONTRATO_DESPLEGADO, EJEMPLO, ESCENARIOS, FAQ, GLOSARIO, INTRODUCCION, PASOS, VIDEO } from '../content/como-funciona';
 import { TicketPionero } from '../landing/TicketPionero';
 import { useState } from 'react';
 
@@ -15,7 +15,7 @@ function Mini({ children }: { children: string }) {
 export function ComoFuncionaPage() {
   const [abierta, setAbierta] = useState<number | null>(null);
   return (
-    <main className="mx-auto flex w-full max-w-[70ch] flex-col gap-12 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex w-full min-w-0 max-w-[70ch] flex-col gap-12 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <header>
         <h1 className="m-0 font-display text-4xl uppercase tracking-wide">Cómo funciona</h1>
         <p className="m-0 mt-3 text-lg">{INTRODUCCION}</p>
@@ -26,7 +26,7 @@ export function ComoFuncionaPage() {
         <PasoDetallado numero={PASOS[0].numero} titulo={PASOS[0].titulo} accion={PASOS[0].accion} queCuesta={PASOS[0].plata} queVes={<Mini>Perfil de Zamba Lunar · Cafayate</Mini>} />
         <PasoDetallado numero={PASOS[1].numero} titulo={PASOS[1].titulo} accion={PASOS[1].accion} queCuesta={PASOS[1].plata} queVes={<span className="sun-btn inline-flex h-11 items-center px-4">Estuve antes</span>} />
         <PasoDetallado numero={PASOS[2].numero} titulo={PASOS[2].titulo} accion={PASOS[2].accion} queCuesta={PASOS[2].plata} queVes={<p className="ticket-numero m-0 text-4xl"><sup>Nº</sup> 041</p>} />
-        <PasoDetallado numero={PASOS[3].numero} titulo={PASOS[3].titulo} accion={PASOS[3].accion} queCuesta={PASOS[3].plata} queVes={<Mini>Votación de pioneros · en definición de plazos públicos</Mini>} />
+        <PasoDetallado numero={PASOS[3].numero} titulo={PASOS[3].titulo} accion={PASOS[3].accion} queCuesta={PASOS[3].plata} queVes={<Mini>Votación de pioneros · 48 horas</Mini>} />
       </section>
 
       <section aria-labelledby="ejemplo-title" className="flex flex-col gap-6">
@@ -52,9 +52,11 @@ export function ComoFuncionaPage() {
           }))}
         />
         <EscenariosLadoALado cumple={ESCENARIOS.cumple} noCumple={ESCENARIOS.noCumple} />
-        <p className="m-0 text-sm">
-          <a className="landing-focus underline" href="#contrato">Ver contrato</a>
-          <span id="contrato">. El enlace al contrato desplegado queda pendiente.</span>
+        <p id="contrato" className="m-0 text-sm">
+          <a className="landing-focus underline" href={CONTRATO_DESPLEGADO.explorer} target="_blank" rel="noreferrer">
+            Ver el contrato en Monadscan
+          </a>
+          <span>. Mínimo 0,001 MON, votación de 48 horas, quórum del 20% y mayoría estricta.</span>
         </p>
       </section>
 

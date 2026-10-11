@@ -31,7 +31,7 @@ export function TicketPionero({
     >
       <div className="ticket-pionero-body">
         <span className="ticket-seal">PIONERO</span>
-        <p className="m-0 text-xs uppercase tracking-wide">Entrada de pionero</p>
+        <p className="m-0 pr-16 text-xs uppercase tracking-wide">Entrada de pionero</p>
         <p className="ticket-numero">
           <sup className="text-lg">Nº</sup> {entryDigits(numero)}
         </p>

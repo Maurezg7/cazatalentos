@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Icon } from './Icon';
+import { LoadingState } from './LoadingState';
 import { hasWalletSession, useEntrySignal } from '../lib/entry-signal';
 
 const ConnectButton = lazy(() => import('./ConnectButton').then((m) => ({ default: m.ConnectButton })));
@@ -31,21 +32,30 @@ export function Layout() {
 
   const shell = (holdOutlet = false) => (
     <div className="flex min-h-dvh justify-center bg-paper font-body text-ink dark:bg-night dark:text-cream">
-      <div className="relative flex min-h-dvh w-full max-w-[480px] flex-col lg:max-w-none">
+      <div className="relative flex min-h-dvh w-full min-w-0 max-w-[480px] flex-col md:max-w-none">
         <header className="app-header sticky top-0 z-50 border-b border-ink/10 pt-[env(safe-area-inset-top,0px)] dark:border-cream/10">
-          <div className="flex h-16 items-center justify-between gap-3 px-4 lg:px-8">
-            <Link to="/" className="flex h-11 items-center" aria-label="Cazatalentos" onClick={() => setMenuOpen(false)}>
-              <img src="/logo-light.svg" alt="" className="h-8 w-auto dark:hidden lg:h-9" />
-              <img src="/logo.svg" alt="" className="hidden h-8 w-auto dark:block lg:h-9" />
+          <div className="flex h-16 items-center justify-between gap-2 px-4 md:gap-3 md:px-8">
+            <Link to="/" className="flex h-11 min-w-0 items-center" aria-label="Cazatalentos" onClick={() => setMenuOpen(false)}>
+              <img src="/logo-light.svg" alt="" className="h-8 w-auto max-w-[9.5rem] object-contain object-left dark:hidden sm:max-w-none md:h-9" />
+              <img src="/logo.svg" alt="" className="hidden h-8 w-auto max-w-[9.5rem] object-contain object-left dark:block sm:max-w-none md:h-9" />
             </Link>
-            <nav className="hidden items-center gap-6 lg:flex">
+            <nav className="hidden items-center gap-6 md:flex">
               <Link to="/explorar" className="text-sm font-semibold tracking-wide uppercase">Explorar</Link>
               <Link to="/como-funciona" className="text-sm font-semibold tracking-wide uppercase">Cómo funciona</Link>
             </nav>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <ThemeButton />
               {WalletStack ? (
-                <Suspense fallback={<button type="button" disabled aria-busy="true" className={`${enterPill} opacity-70`}>Cargando…</button>}>
+                <Suspense
+                  fallback={
+                    <button type="button" disabled aria-busy="true" className={`${enterPill} inline-flex items-center gap-2 opacity-70`}>
+                      <span className="loading-mark h-3.5 w-3.5" aria-hidden="true">
+                        <span className="loading-mark-ring" />
+                      </span>
+                      <span>Cargando…</span>
+                    </button>
+                  }
+                >
                   <ConnectButton />
                 </Suspense>
               ) : (
@@ -53,14 +63,23 @@ export function Layout() {
                   type="button"
                   aria-busy={walletRequested}
                   onClick={openEntry}
-                  className={enterPill}
+                  className={`${enterPill} inline-flex items-center gap-2`}
                 >
-                  {walletRequested ? 'Cargando…' : 'Entrar'}
+                  {walletRequested ? (
+                    <>
+                      <span className="loading-mark h-3.5 w-3.5" aria-hidden="true">
+                        <span className="loading-mark-ring" />
+                      </span>
+                      <span>Cargando…</span>
+                    </>
+                  ) : (
+                    'Entrar'
+                  )}
                 </button>
               )}
               <button
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-ink/20 lg:hidden dark:border-cream/20"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/20 md:hidden dark:border-cream/20"
                 aria-expanded={menuOpen}
                 aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
                 onClick={() => setMenuOpen((open) => !open)}
@@ -70,26 +89,24 @@ export function Layout() {
             </div>
           </div>
           {menuOpen ? (
-            <nav className="flex flex-col gap-1 px-4 pb-4 lg:hidden">
+            <nav className="flex flex-col gap-1 px-4 pb-4 md:hidden">
               <Link to="/explorar" onClick={() => setMenuOpen(false)} className="flex h-11 items-center text-sm font-semibold uppercase tracking-wide">Explorar</Link>
               <Link to="/como-funciona" onClick={() => setMenuOpen(false)} className="flex h-11 items-center text-sm font-semibold uppercase tracking-wide">Cómo funciona</Link>
             </nav>
           ) : null}
         </header>
-        <main className="flex-1 px-4 pb-10 lg:px-8 lg:pb-16 xl:px-12">
+        <main className="min-w-0 flex-1 px-4 pb-10 md:px-8 md:pb-16 xl:px-12">
           {holdOutlet || (pathname !== '/' && !WalletStack) ? (
-            <p className="pt-8 text-center font-mono text-[0.6875rem] uppercase tracking-wider text-outline">
-              Cargando…
-            </p>
+            <LoadingState label="Cargando…" size="sm" />
           ) : (
             <Outlet />
           )}
         </main>
         {walletRequested && !WalletStack ? (
-          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 lg:items-center" role="status">
-            <p className="mb-8 rounded-2xl bg-paper px-6 py-4 font-body text-sm font-semibold text-ink shadow-lg dark:bg-night dark:text-cream lg:mb-0">
-              Cargando tu entrada…
-            </p>
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 lg:items-center">
+            <div className="mb-8 w-full max-w-xs rounded-2xl border border-[var(--line)] bg-[var(--panel)] px-6 py-2 shadow-lg lg:mb-0">
+              <LoadingState label="Cargando tu entrada…" size="sm" />
+            </div>
           </div>
         ) : null}
       </div>

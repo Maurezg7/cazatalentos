@@ -14,8 +14,8 @@ export function HeroLanding({
   onExplorar: string;
 }) {
   return (
-    <section className="grid min-w-0 items-center gap-8 lg:grid-cols-[1.05fr_1fr]" aria-labelledby="hero-title">
-      <div className="min-w-0">
+    <section className="grid min-w-0 items-center gap-8 md:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]" aria-labelledby="hero-title">
+      <div className="hero-copy">
         <h1 id="hero-title" className="hero-title">
           Creíste primero.
           <br />
@@ -44,12 +44,12 @@ export function HeroLanding({
         </dl>
       </div>
       <TicketPionero
-        numero={7}
+        numero={pioneros > 0 ? 1 : 7}
         artista={artista}
         ciudad={ciudad}
         registradaEn="Entrada de muestra"
-        posicion={7}
-        totalPioneros={Math.max(pioneros, 7)}
+        posicion={pioneros > 0 ? 1 : 7}
+        totalPioneros={Math.max(pioneros, 1)}
         meta="El número real lo asigna el contrato"
         estado="en_curso"
       />

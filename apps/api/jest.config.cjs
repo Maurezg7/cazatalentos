@@ -7,4 +7,7 @@ module.exports = {
   moduleNameMapper: {
     '^@cazatalentos/shared$': '<rootDir>/../../packages/shared/src/index.ts',
   },
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
+  },
 };
