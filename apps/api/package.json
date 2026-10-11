@@ -10,7 +10,8 @@
     "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed:artists": "node scripts/seed-artists.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.1.2",

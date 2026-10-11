@@ -160,7 +160,7 @@ export class ArtistsService {
         generos: [] as string[],
         pioneros: row.supporterCount,
         patrocinado: row.promoRank > 0,
-        portada: row.cover ? `/api/media/artists/${row.id}/cover` : null,
+        portada: publicArtistImage(row.id, 'cover', row.cover),
         pozo: open
           ? {
               id: open.id,
@@ -305,8 +305,20 @@ export class ArtistsService {
       where: { id: artist.id },
       data: {
         ...(bio !== undefined ? { bio } : {}),
-        ...(input.photo !== undefined ? { photo: await this.writeArtistImage(artist.id, 'photo', input.photo) } : {}),
-        ...(input.cover !== undefined ? { cover: await this.writeArtistImage(artist.id, 'cover', input.cover) } : {}),
+        ...(input.photo !== undefined
+          ? {
+              photo: isHttpUrl(input.photo)
+                ? input.photo
+                : await this.writeArtistImage(artist.id, 'photo', input.photo),
+            }
+          : {}),
+        ...(input.cover !== undefined
+          ? {
+              cover: isHttpUrl(input.cover)
+                ? input.cover
+                : await this.writeArtistImage(artist.id, 'cover', input.cover),
+            }
+          : {}),
         ...(input.bioWash !== undefined ? { bioWash: input.bioWash } : {}),
         ...(input.bioInk !== undefined ? { bioInk: input.bioInk } : {}),
         ...(input.nameFont !== undefined ? { nameFont: input.nameFont } : {}),
@@ -489,6 +501,7 @@ export class ArtistsService {
     current: string | null,
   ): Promise<string | null> {
     if (!current) return null;
+    if (isHttpUrl(current)) return current;
     if (!current.startsWith('data:')) return `/api/media/artists/${id}/${kind}`;
     const fileName = await this.writeArtistImage(id, kind, current);
     await this.prisma.artist.update({ where: { id }, data: { [kind]: fileName } });
@@ -642,6 +655,13 @@ function mediaKind(dataUrl: string): 'gif' | 'photo' {
 
 function isHttpUrl(value: string): boolean {
   return value.startsWith('http://') || value.startsWith('https://');
+}
+
+function publicArtistImage(id: number, kind: 'photo' | 'cover', current: string | null): string | null {
+  if (!current) return null;
+  if (isHttpUrl(current)) return current;
+  if (current.startsWith('data:')) return null;
+  return `/api/media/artists/${id}/${kind}`;
 }
 
 function contrastRatio(wash: string, ink: string): number {
