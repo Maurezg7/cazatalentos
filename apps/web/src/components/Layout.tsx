@@ -17,18 +17,34 @@ export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { openEntry, walletRequested } = useEntrySignal();
   const [WalletStack, setWalletStack] = useState<ComponentType<{ children: ReactNode }> | null>(null);
-  const shouldLoad = walletRequested || pathname !== '/' || hasWalletSession();
+  const needsWalletNow =
+    walletRequested || pathname.startsWith('/artist') || pathname.startsWith('/pool') || hasWalletSession();
+  // Warm Privy on the home so "Ver perfil" does not sit on a blank loader.
+  const shouldLoad = needsWalletNow || pathname === '/' || pathname === '/explorar' || pathname === '/como-funciona';
 
   useEffect(() => {
     if (!shouldLoad || WalletStack) return;
     let cancelled = false;
-    void import('../providers/WalletStack').then((mod) => {
-      if (!cancelled) setWalletStack(() => mod.WalletStack);
-    });
+    const load = () => {
+      void import('../providers/WalletStack').then((mod) => {
+        if (!cancelled) setWalletStack(() => mod.WalletStack);
+      });
+    };
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (needsWalletNow) {
+      load();
+    } else if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(load, { timeout: 1800 });
+    } else {
+      timeoutId = setTimeout(load, 400);
+    }
     return () => {
       cancelled = true;
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
     };
-  }, [shouldLoad, WalletStack]);
+  }, [shouldLoad, needsWalletNow, WalletStack]);
 
   const shell = (holdOutlet = false) => (
     <div className="flex min-h-dvh justify-center bg-paper font-body text-ink dark:bg-night dark:text-cream">
@@ -96,7 +112,7 @@ export function Layout() {
           ) : null}
         </header>
         <main className="min-w-0 flex-1 px-4 pb-10 md:px-8 md:pb-16 xl:px-12">
-          {holdOutlet || (pathname !== '/' && !WalletStack) ? (
+          {holdOutlet || (needsWalletNow && !WalletStack) ? (
             <LoadingState label="Cargando…" size="sm" />
           ) : (
             <Outlet />

@@ -69,7 +69,11 @@ export function useArtist(artistId: bigint | undefined) {
     abi: CAZATALENTOS_ABI,
     functionName: 'artistOf',
     args: artistId !== undefined ? ([artistId] as const) : undefined,
-    query: { enabled: artistId !== undefined },
+    query: {
+      enabled: artistId !== undefined,
+      retry: 1,
+      staleTime: 30_000,
+    },
   });
 }
 

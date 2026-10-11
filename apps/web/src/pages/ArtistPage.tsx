@@ -49,6 +49,7 @@ export function ArtistPage() {
   const {
     data: artistRaw,
     isLoading: artistLoading,
+    isError: artistError,
     refetch: refetchArtist,
   } = useArtist(artistId);
 
@@ -70,6 +71,8 @@ export function ArtistPage() {
     queryKey: ['artist-profile', artistId?.toString()],
     queryFn: () => fetchArtistProfile(Number(artistId)),
     enabled: artistId !== undefined,
+    retry: 1,
+    staleTime: 30_000,
   });
   const profile = profileQuery.data ?? null;
   const poolsQuery = useQuery({
@@ -94,7 +97,11 @@ export function ArtistPage() {
   }
 
   const onChain = artist?.exists ? artist : null;
-  const waiting = !profile && !onChain && (profileQuery.isLoading || artistLoading);
+  // Prefer the API profile; don't block forever on a slow/failing RPC read.
+  const waiting =
+    !profile &&
+    !onChain &&
+    (profileQuery.isLoading || (artistLoading && !artistError && !profileQuery.isFetched));
 
   if (waiting) {
     return <LoadingState label="Buscando al artista…" />;
