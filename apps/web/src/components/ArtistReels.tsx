@@ -14,6 +14,8 @@ type ArtistReelsProps = {
   ownerAddress: string | undefined;
 };
 
+export const OPEN_REEL_EDITOR_EVENT = 'ct-open-reel-editor';
+
 export function ArtistReels({ artistId, isOwner, ownerAddress }: ArtistReelsProps) {
   const [editorOpen, setEditorOpen] = useState(false);
   const reels = useQuery({
@@ -21,11 +23,20 @@ export function ArtistReels({ artistId, isOwner, ownerAddress }: ArtistReelsProp
     queryFn: () => fetchArtistReels(artistId),
   });
 
+  useEffect(() => {
+    if (!isOwner || !ownerAddress) return;
+    function onOpen() {
+      setEditorOpen(true);
+    }
+    window.addEventListener(OPEN_REEL_EDITOR_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_REEL_EDITOR_EVENT, onOpen);
+  }, [isOwner, ownerAddress]);
+
   const items = reels.data ?? [];
   if (!isOwner && items.length === 0) return null;
 
   return (
-    <div className="mt-6">
+    <div id="reels" className="mt-6 scroll-mt-24">
       <div className="mb-3 flex items-center justify-between gap-2">
         <span className="font-serif text-xl italic text-[#f5f7ee]">Reels</span>
         {isOwner ? (

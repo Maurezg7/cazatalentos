@@ -12,8 +12,8 @@ import { COUNTRIES } from '../lib/places';
 import { signedWrite } from '../lib/write-auth';
 import { contrastRatio, NAME_FONTS, nameFontClass, type NameFont } from '../lib/name-style';
 import { readArtistImage } from '../lib/artist-image';
-import { BIO_PALETTE } from './ArtistReels';
-import { Icon } from './Icon';
+import { BIO_PALETTE, OPEN_REEL_EDITOR_EVENT } from './ArtistReels';
+import { Icon, type IconName } from './Icon';
 import { SOCIAL_FIELDS, stableLinksJson } from './ArtistSocialLinks';
 
 const EMOJIS = ['🎵', '🎸', '🎤', '🔥', '❤️', '🙌', '🎶', '✨', '💚', '🥁'];
@@ -409,23 +409,25 @@ function PostComposer({ artistId }: { artistId: number }) {
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
+      <div className="grid grid-cols-3 gap-2">
+        <MediaPickButton
+          icon="image"
+          label="Foto"
           onClick={() => photoRef.current?.click()}
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#414d2b] px-3 font-mono text-[0.6875rem] text-[#d6debe]"
-        >
-          <Icon name="camera" className="h-4 w-4" />
-          Foto
-        </button>
-        <button
-          type="button"
+        />
+        <MediaPickButton
+          icon="filetype-gif"
+          label="GIF"
           onClick={() => gifRef.current?.click()}
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#414d2b] px-3 font-mono text-[0.6875rem] text-[#d6debe]"
-        >
-          <Icon name="filetype-gif" className="h-4 w-4" />
-          GIF
-        </button>
+        />
+        <MediaPickButton
+          icon="camera-reels"
+          label="Video"
+          onClick={() => {
+            document.getElementById('reels')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.dispatchEvent(new Event(OPEN_REEL_EDITOR_EVENT));
+          }}
+        />
         <input
           ref={photoRef}
           type="file"
@@ -483,6 +485,29 @@ function PostCard({ post }: { post: ArtistPost }) {
       ) : null}
       <p className="mt-2 font-mono text-[0.6875rem] uppercase tracking-wider text-[#879373]">{when}</p>
     </li>
+  );
+}
+
+function MediaPickButton({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: IconName;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-[#414d2b] bg-[#181d13] px-2 text-[#d6debe] transition active:scale-[0.98] hover:border-[#8ea459] hover:text-[#f5f7ee]"
+    >
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#5c6b3a] text-[#12160d]">
+        <Icon name={icon} className="h-5 w-5" />
+      </span>
+      <span className="font-mono text-[0.6875rem] font-bold uppercase tracking-wide">{label}</span>
+    </button>
   );
 }
 
