@@ -11,12 +11,12 @@ import {
 import { COUNTRIES } from '../lib/places';
 import { signedWrite } from '../lib/write-auth';
 import { contrastRatio, NAME_FONTS, nameFontClass, type NameFont } from '../lib/name-style';
+import { readArtistImage } from '../lib/artist-image';
 import { BIO_PALETTE } from './ArtistReels';
 import { Icon } from './Icon';
 import { SOCIAL_FIELDS, stableLinksJson } from './ArtistSocialLinks';
 
 const EMOJIS = ['🎵', '🎸', '🎤', '🔥', '❤️', '🙌', '🎶', '✨', '💚', '🥁'];
-const MAX_IMAGE_BYTES = 1_500_000;
 
 type ArtistStudioProps = {
   artistId: number;
@@ -57,7 +57,7 @@ export function ArtistStudio({
   });
 
   return (
-    <section className="flex flex-col gap-4">
+    <section id="editar-perfil" className="flex scroll-mt-24 flex-col gap-4">
       <h2 className="font-serif text-2xl font-semibold italic text-[#f5f7ee]">Novedades</h2>
 
       {isOwner && ownerAddress ? (
@@ -178,9 +178,10 @@ function ProfileEditor({
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#8ea459] bg-[#5c6b3a] px-3.5 font-mono text-[0.6875rem] font-bold tracking-wide text-[#12160d]"
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#8ea459] bg-[#5c6b3a] px-3.5 font-mono text-[0.6875rem] font-bold tracking-wide text-[#12160d] sm:w-auto"
       >
-        Editar perfil
+        <Icon name="camera" className="h-4 w-4" />
+        Editar perfil, foto y portada
       </button>
     );
   }
@@ -194,6 +195,20 @@ function ProfileEditor({
         save.mutate();
       }}
     >
+      <ImageField
+        label="Foto de perfil"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        current={draftPhoto ?? photo}
+        onPick={setDraftPhoto}
+        onError={setError}
+      />
+      <ImageField
+        label="Portada"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        current={draftCover ?? cover}
+        onPick={setDraftCover}
+        onError={setError}
+      />
       <label className="flex flex-col gap-1 text-xs text-[#d6debe]">
         Biografía
         <textarea
@@ -300,20 +315,6 @@ function ProfileEditor({
           </label>
         ))}
       </div>
-      <ImageField
-        label="Foto de perfil"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        current={draftPhoto ?? photo}
-        onPick={setDraftPhoto}
-        onError={setError}
-      />
-      <ImageField
-        label="Portada"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        current={draftCover ?? cover}
-        onPick={setDraftCover}
-        onError={setError}
-      />
       {error ? <p className="text-sm text-vino-700">{error}</p> : null}
       <div className="flex gap-2">
         <button
@@ -433,7 +434,7 @@ function PostComposer({ artistId }: { artistId: number }) {
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = '';
-            if (file) void readImage(file, false).then(setMedia).catch((reason: unknown) => {
+            if (file) void readArtistImage(file, false).then(setMedia).catch((reason: unknown) => {
               setError(reason instanceof Error ? reason.message : 'No se pudo leer la foto.');
             });
           }}
@@ -446,7 +447,7 @@ function PostComposer({ artistId }: { artistId: number }) {
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = '';
-            if (file) void readImage(file, true).then(setMedia).catch((reason: unknown) => {
+            if (file) void readArtistImage(file, true).then(setMedia).catch((reason: unknown) => {
               setError(reason instanceof Error ? reason.message : 'No se pudo leer el GIF.');
             });
           }}
@@ -499,69 +500,28 @@ function ImageField({
   onError: (message: string) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-[#d6debe]">
-      {label}
-      {current ? <img src={current} alt="" className="h-24 w-full rounded-lg object-cover" /> : null}
-      <input
-        type="file"
-        accept={accept}
-        className="text-xs"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = '';
-          if (!file) return;
-          void readImage(file, file.type === 'image/gif')
-            .then(onPick)
-            .catch((reason: unknown) => {
-              onError(reason instanceof Error ? reason.message : 'No se pudo leer la imagen.');
-            });
-        }}
-      />
+    <label className="flex flex-col gap-2 text-xs text-[#d6debe]">
+      <span className="font-mono text-[0.6875rem] font-bold uppercase tracking-wide">{label}</span>
+      {current ? <img src={current} alt="" className="h-28 w-full rounded-xl object-cover ring-1 ring-[#414d2b]" /> : null}
+      <span className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#8ea459] bg-[#24301a] px-3 font-mono text-[0.6875rem] font-bold text-[#d6debe]">
+        <Icon name={label.toLowerCase().includes('portada') ? 'image' : 'camera'} className="h-4 w-4" />
+        Elegir {label.toLowerCase()}
+        <input
+          type="file"
+          accept={accept}
+          className="sr-only"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            if (!file) return;
+            void readArtistImage(file, file.type === 'image/gif')
+              .then(onPick)
+              .catch((reason: unknown) => {
+                onError(reason instanceof Error ? reason.message : 'No se pudo leer la imagen.');
+              });
+          }}
+        />
+      </span>
     </label>
   );
-}
-
-async function readImage(file: File, keepGif: boolean): Promise<string> {
-  if (file.size > MAX_IMAGE_BYTES) {
-    throw new Error('La imagen pesa más de 1.5 MB.');
-  }
-  if (keepGif || file.type === 'image/gif') {
-    return readAsDataUrl(file);
-  }
-  return compressPhoto(file);
-}
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') resolve(reader.result);
-      else reject(new Error('No se pudo leer el archivo.'));
-    };
-    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
-    reader.readAsDataURL(file);
-  });
-}
-
-async function compressPhoto(file: File): Promise<string> {
-  const source = await readAsDataUrl(file);
-  const image = await loadImage(source);
-  const maxSide = 1280;
-  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(image.width * scale));
-  canvas.height = Math.max(1, Math.round(image.height * scale));
-  const context = canvas.getContext('2d');
-  if (!context) return source;
-  context.drawImage(image, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', 0.82);
-}
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error('No se pudo abrir la imagen.'));
-    image.src = src;
-  });
 }

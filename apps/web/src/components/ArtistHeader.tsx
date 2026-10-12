@@ -1,8 +1,16 @@
 import { useRef, useState } from 'react';
 import { nameFontClass, readableInk } from '../lib/name-style';
 import { flagEmoji } from '../lib/places';
+import { CoverEditButton, OwnerMediaToolbar, PhotoEditBadge } from './ArtistMediaEdit';
 import { ArtistReels } from './ArtistReels';
 import { ArtistSocialLinks } from './ArtistSocialLinks';
+
+type MediaEditControls = {
+  saving: boolean;
+  error: string | null;
+  onPickPhoto: (file: File) => void;
+  onPickCover: (file: File) => void;
+};
 
 type ArtistHeaderProps = {
   artistId: bigint;
@@ -20,6 +28,7 @@ type ArtistHeaderProps = {
   poolCount: number;
   accent: string | null;
   linkEntries?: Array<[string, string]>;
+  mediaEdit?: MediaEditControls;
 };
 
 export function ArtistHeader({
@@ -38,25 +47,32 @@ export function ArtistHeader({
   poolCount,
   accent,
   linkEntries = [],
+  mediaEdit,
 }: ArtistHeaderProps) {
   const acta = artistId.toString().padStart(3, '0');
   const initial = name.trim().slice(0, 1).toUpperCase() || 'A';
   const pioneers =
     supporterCount === 1 ? '1 pionero' : `${supporterCount} pioneros`;
   const poolsLabel = poolCount === 1 ? '1 pozo' : `${poolCount} pozos`;
+  const canEdit = Boolean(isOwner && ownerAddress && mediaEdit);
 
   return (
     <div className="relative -mt-14 md:-mt-16">
       <div className="flex flex-col gap-4">
         <div className="flex items-end gap-4">
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-[#14180f] bg-[#2e3723] shadow-2xl md:h-32 md:w-32">
-            {photo && !isVideoUrl(photo) ? (
-              <img src={photo} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center font-serif text-4xl font-semibold italic text-primary">
-                {initial}
-              </div>
-            )}
+          <div className="relative h-24 w-24 shrink-0 md:h-32 md:w-32">
+            <div className="h-full w-full overflow-hidden rounded-full border-4 border-[#14180f] bg-[#2e3723] shadow-2xl">
+              {photo && !isVideoUrl(photo) ? (
+                <img src={photo} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center font-serif text-4xl font-semibold italic text-primary">
+                  {initial}
+                </div>
+              )}
+            </div>
+            {canEdit && mediaEdit ? (
+              <PhotoEditBadge saving={mediaEdit.saving} onPick={mediaEdit.onPickPhoto} />
+            ) : null}
           </div>
           <div className="min-w-0 pb-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -94,6 +110,15 @@ export function ArtistHeader({
         </dl>
 
         <ArtistSocialLinks entries={linkEntries} className="mt-1" />
+
+        {canEdit && mediaEdit ? (
+          <OwnerMediaToolbar
+            saving={mediaEdit.saving}
+            error={mediaEdit.error}
+            onPickPhoto={mediaEdit.onPickPhoto}
+            onPickCover={mediaEdit.onPickCover}
+          />
+        ) : null}
       </div>
 
       {bio ? (
@@ -113,7 +138,21 @@ export function ArtistHeader({
   );
 }
 
-export function CoverMedia({ src, name, wash }: { src: string | null; name: string; wash: string | null }) {
+export function CoverMedia({
+  src,
+  name,
+  wash,
+  canEdit = false,
+  savingCover = false,
+  onPickCover,
+}: {
+  src: string | null;
+  name: string;
+  wash: string | null;
+  canEdit?: boolean;
+  savingCover?: boolean;
+  onPickCover?: (file: File) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [paused, setPaused] = useState(false);
   const [loaded, setLoaded] = useState(src === null || !isVideoUrl(src));
@@ -191,6 +230,10 @@ export function CoverMedia({ src, name, wash }: { src: string | null; name: stri
           <PlayPauseIcon paused={paused} />
           <span>{paused ? 'Reproducir' : 'Pausar'}</span>
         </button>
+      ) : null}
+
+      {canEdit && onPickCover ? (
+        <CoverEditButton saving={savingCover} onPick={onPickCover} />
       ) : null}
     </div>
   );

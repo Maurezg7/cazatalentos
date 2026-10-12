@@ -9,6 +9,7 @@ import { ActionButton } from '../components/ActionButton';
 import { Icon } from '../components/Icon';
 import { useEntrySheet } from '../components/EntrySheet';
 import { ArtistHeader, CoverMedia } from '../components/ArtistHeader';
+import { useArtistMediaSave } from '../components/ArtistMediaEdit';
 import { ArtistStudio } from '../components/ArtistStudio';
 import { BeliefCard } from '../components/BeliefCard';
 import { ErrorState } from '../components/ErrorState';
@@ -96,39 +97,35 @@ export function ArtistPage() {
           background: `linear-gradient(180deg, ${profile.bioWash ?? '#1c3a28'} 0%, #14180f 340px, #14180f 100%)`,
         }}
       >
-        <CoverMedia src={mediaUrl(profile.cover)} name={displayName} wash={profile.bioWash ?? null} />
-
-        <div className="px-4 pb-6 md:px-8 md:pb-8">
-          {walletReady ? (
-            <ArtistWalletBody
-              artistId={artistId}
-              profile={profile}
-              displayName={displayName}
-              pools={pools}
-              poolsLoading={poolsQuery.isLoading && !poolsQuery.data}
-              linkEntries={linkEntries}
-              onProfileSaved={() => {
-                void profileQuery.refetch();
-              }}
-              onPoolsChanged={() => {
-                void poolsQuery.refetch();
-              }}
-            />
-          ) : (
-            <ArtistPublicBody
-              artistId={artistId}
-              profile={profile}
-              displayName={displayName}
-              pools={pools}
-              poolsLoading={poolsQuery.isLoading && !poolsQuery.data}
-              linkEntries={linkEntries}
-              onEnter={openEntry}
-              onProfileSaved={() => {
-                void profileQuery.refetch();
-              }}
-            />
-          )}
-        </div>
+        {walletReady ? (
+          <ArtistWalletBody
+            artistId={artistId}
+            profile={profile}
+            displayName={displayName}
+            pools={pools}
+            poolsLoading={poolsQuery.isLoading && !poolsQuery.data}
+            linkEntries={linkEntries}
+            onProfileSaved={() => {
+              void profileQuery.refetch();
+            }}
+            onPoolsChanged={() => {
+              void poolsQuery.refetch();
+            }}
+          />
+        ) : (
+          <ArtistPublicBody
+            artistId={artistId}
+            profile={profile}
+            displayName={displayName}
+            pools={pools}
+            poolsLoading={poolsQuery.isLoading && !poolsQuery.data}
+            linkEntries={linkEntries}
+            onEnter={openEntry}
+            onProfileSaved={() => {
+              void profileQuery.refetch();
+            }}
+          />
+        )}
       </div>
     </section>
   );
@@ -155,6 +152,8 @@ function ArtistPublicBody({
 }) {
   return (
     <>
+      <CoverMedia src={mediaUrl(profile.cover)} name={displayName} wash={profile.bioWash ?? null} />
+      <div className="px-4 pb-6 md:px-8 md:pb-8">
       <ArtistHeader
         artistId={artistId}
         name={displayName}
@@ -200,6 +199,7 @@ function ArtistPublicBody({
           </div>
           {poolsLoading ? <LoadingState label="Buscando pozos…" size="sm" /> : null}
         </div>
+      </div>
       </div>
     </>
   );
@@ -270,8 +270,27 @@ function ArtistWalletBody({
     void refetchSupporter();
   }, [isSuccess, refetchArtist, refetchSupporter]);
 
+  const media = useArtistMediaSave(Number(artistId), onProfileSaved);
+  const mediaEdit = isOwner
+    ? {
+        saving: media.saving,
+        error: media.error,
+        onPickPhoto: (file: File) => void media.pickAndSave('photo', file),
+        onPickCover: (file: File) => void media.pickAndSave('cover', file),
+      }
+    : undefined;
+
   return (
     <>
+      <CoverMedia
+        src={mediaUrl(profile.cover)}
+        name={displayName}
+        wash={profile.bioWash ?? null}
+        canEdit={Boolean(mediaEdit)}
+        savingCover={media.saving}
+        onPickCover={mediaEdit?.onPickCover}
+      />
+      <div className="px-4 pb-6 md:px-8 md:pb-8">
       <ArtistHeader
         artistId={artistId}
         name={displayName}
@@ -288,6 +307,7 @@ function ArtistWalletBody({
         poolCount={pools.length}
         accent={profile.bioInk}
         linkEntries={linkEntries}
+        mediaEdit={mediaEdit}
       />
 
       <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
@@ -459,6 +479,8 @@ function ArtistWalletBody({
           window.location.reload();
         }}
       />
+
+      </div>
 
       {poolFormOpen ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/80 p-4 sm:items-center">
