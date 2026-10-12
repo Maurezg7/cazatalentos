@@ -33,8 +33,9 @@ export function ArtistReels({ artistId, isOwner, ownerAddress }: ArtistReelsProp
             type="button"
             disabled={!ownerAddress}
             onClick={() => setEditorOpen(true)}
-            className="min-h-9 rounded-full border border-[#8ea459] px-3 font-mono text-[0.6875rem] font-bold text-[#d6debe] disabled:opacity-50"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#8ea459] px-3 font-mono text-[0.6875rem] font-bold text-[#d6debe] disabled:opacity-50"
           >
+            <Icon name="camera-reels" className="h-4 w-4" />
             Nuevo reel
           </button>
         ) : null}
@@ -227,7 +228,6 @@ function ReelEditor({
       | undefined;
     if (!capabilities?.zoom) return;
     try {
-      // Phones that expose zoom: pull to the minimum (often the “0.5x / wide” feel).
       await track.applyConstraints({
         advanced: [{ zoom: capabilities.zoom.min } as MediaTrackConstraintSet],
       });
@@ -242,15 +242,10 @@ function ReelEditor({
     clearPreviewUrl();
     stopCamera();
     try {
-      // Avoid forcing 720x1280: on phones that crops the sensor and looks like 2x zoom.
+      // Bare facingMode only — high ideal sizes make phones crop/zoom the sensor.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: {
-          facingMode: { ideal: nextFacing },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          aspectRatio: { ideal: 16 / 9 },
-        },
+        video: { facingMode: nextFacing },
       });
       const track = stream.getVideoTracks()[0];
       if (track) await preferWideLens(track);
@@ -379,15 +374,19 @@ function ReelEditor({
 
         {cameraOpen ? (
           <div className="flex flex-col items-center gap-4">
-            <div className="relative w-full max-w-[260px] overflow-hidden rounded-[1.5rem] bg-black ring-1 ring-[#3c4626]">
-              <video
-                ref={liveRef}
-                autoPlay
-                muted
-                playsInline
-                // object-contain avoids the “2x zoomed face” crop phones get with object-cover.
-                className={`aspect-[9/16] w-full bg-black object-contain ${mirrorPreview ? 'scale-x-[-1]' : ''}`}
-              />
+            <div className="relative w-full max-w-[280px] overflow-hidden rounded-[1.5rem] bg-black ring-1 ring-[#3c4626]">
+              <div className="relative aspect-[9/16] w-full overflow-hidden bg-black">
+                <video
+                  ref={liveRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  // ~0.5x visual: show full sensor framed smaller (phones often look like 2x otherwise).
+                  className={`absolute left-1/2 top-1/2 h-full w-full max-w-none origin-center object-contain ${
+                    mirrorPreview ? '-translate-x-1/2 -translate-y-1/2 scale-x-[-0.55] scale-y-[0.55]' : '-translate-x-1/2 -translate-y-1/2 scale-[0.55]'
+                  }`}
+                />
+              </div>
               {recording ? (
                 <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-2.5 py-1">
                   <span className="reel-rec-dot inline-block h-2.5 w-2.5 rounded-full bg-[#ff3b30]" />
@@ -397,7 +396,7 @@ function ReelEditor({
                 </div>
               ) : (
                 <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center font-mono text-[0.625rem] uppercase tracking-wider text-white/80">
-                  Vista amplia · listo para grabar
+                  Vista 0.5x · listo para grabar
                 </p>
               )}
             </div>
