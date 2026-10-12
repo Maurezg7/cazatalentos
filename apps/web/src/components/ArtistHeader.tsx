@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { nameFontClass, readableInk } from '../lib/name-style';
 import { flagEmoji } from '../lib/places';
-import { CoverEditButton, OwnerMediaToolbar, PhotoEditBadge } from './ArtistMediaEdit';
+import { CoverEditButton, PhotoEditBadge } from './ArtistMediaEdit';
 import { ArtistReels } from './ArtistReels';
 import { ArtistSocialLinks } from './ArtistSocialLinks';
 
@@ -110,14 +110,8 @@ export function ArtistHeader({
         </dl>
 
         <ArtistSocialLinks entries={linkEntries} className="mt-1" />
-
-        {canEdit && mediaEdit ? (
-          <OwnerMediaToolbar
-            saving={mediaEdit.saving}
-            error={mediaEdit.error}
-            onPickPhoto={mediaEdit.onPickPhoto}
-            onPickCover={mediaEdit.onPickCover}
-          />
+        {canEdit && mediaEdit?.error ? (
+          <p className="text-sm text-vino-700">{mediaEdit.error}</p>
         ) : null}
       </div>
 
