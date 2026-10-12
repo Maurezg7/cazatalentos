@@ -412,15 +412,17 @@ function PostComposer({ artistId }: { artistId: number }) {
         <button
           type="button"
           onClick={() => photoRef.current?.click()}
-          className="min-h-11 rounded-lg border border-[#414d2b] px-3 font-mono text-[0.6875rem] text-[#d6debe]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#414d2b] px-3 font-mono text-[0.6875rem] text-[#d6debe]"
         >
+          <Icon name="camera" className="h-4 w-4" />
           Foto
         </button>
         <button
           type="button"
           onClick={() => gifRef.current?.click()}
-          className="min-h-11 rounded-lg border border-[#414d2b] px-3 font-mono text-[0.6875rem] text-[#d6debe]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#414d2b] px-3 font-mono text-[0.6875rem] text-[#d6debe]"
         >
+          <Icon name="filetype-gif" className="h-4 w-4" />
           GIF
         </button>
         <input
