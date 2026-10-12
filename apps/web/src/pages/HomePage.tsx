@@ -29,10 +29,9 @@ export function HomePage() {
   const cartelera = useQuery({
     queryKey: ['home-cartelera'],
     queryFn: () => fetchExplorar(HOME_CARTELERA),
-    staleTime: 60_000,
   });
   const artistas = cartelera.data?.items ?? [];
-  useQuery({ queryKey: ['total-artists'], queryFn: readTotalArtists, staleTime: 60_000 });
+  useQuery({ queryKey: ['total-artists'], queryFn: readTotalArtists });
 
   const pozos = openPoolsFromCartelera(artistas);
   const lead = artistas[0];

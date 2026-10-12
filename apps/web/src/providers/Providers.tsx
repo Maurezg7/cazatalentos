@@ -1,36 +1,45 @@
-import { type ReactNode, useEffect, useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { type ReactNode, useState } from 'react';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ToastProvider } from '../lib/observability/toast';
 import { EntrySignalProvider } from '../lib/entry-signal';
 import { warmAppData } from '../lib/prefetch';
+import {
+  createAppPersister,
+  createAppQueryClient,
+  QUERY_CACHE_MAX_AGE,
+  shouldPersistQuery,
+} from '../lib/query-persist';
 import { MotionProvider } from '../effects/MotionProvider';
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60_000,
-            gcTime: 5 * 60_000,
-            refetchOnWindowFocus: false,
-            retry: 1,
-          },
-        },
-      }),
-  );
-
-  useEffect(() => {
-    warmAppData(queryClient);
-  }, [queryClient]);
+  const [queryClient] = useState(() => createAppQueryClient());
+  const [persister] = useState(() => createAppPersister());
+  const [cacheReady, setCacheReady] = useState(false);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: QUERY_CACHE_MAX_AGE,
+        dehydrateOptions: {
+          shouldDehydrateQuery: shouldPersistQuery,
+        },
+      }}
+      onSuccess={() => {
+        setCacheReady(true);
+        warmAppData(queryClient);
+      }}
+      onError={() => {
+        setCacheReady(true);
+        warmAppData(queryClient);
+      }}
+    >
       <EntrySignalProvider>
         <MotionProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>{cacheReady ? children : null}</ToastProvider>
         </MotionProvider>
       </EntrySignalProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

@@ -44,13 +44,11 @@ export function ArtistPage() {
     queryKey: ['artist-profile', artistId?.toString()],
     queryFn: () => fetchArtistProfile(Number(artistId)),
     enabled: artistId !== undefined,
-    staleTime: 60_000,
   });
   const poolsQuery = useQuery({
     queryKey: ['artist-pools', artistId?.toString()],
     queryFn: () => fetchArtistPools(Number(artistId)),
     enabled: artistId !== undefined,
-    staleTime: 60_000,
   });
 
   if (artistId === undefined) {
