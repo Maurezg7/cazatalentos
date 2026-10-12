@@ -55,16 +55,29 @@ export function Layout() {
     <div className="flex min-h-dvh justify-center bg-paper font-body text-ink dark:bg-night dark:text-cream">
       <div className="relative flex min-h-dvh w-full min-w-0 max-w-[480px] flex-col md:max-w-none">
         <header className="app-header sticky top-0 z-50 border-b border-ink/10 pt-[env(safe-area-inset-top,0px)] dark:border-cream/10">
-          <div className="flex h-16 items-center justify-between gap-2 px-4 md:gap-3 md:px-8">
-            <Link to="/" className="flex h-11 min-w-0 items-center" aria-label="Cazatalentos" onClick={() => setMenuOpen(false)}>
-              <img src="/logo-light.svg" alt="" className="h-8 w-auto max-w-[9.5rem] object-contain object-left dark:hidden sm:max-w-none md:h-9" />
-              <img src="/logo.svg" alt="" className="hidden h-8 w-auto max-w-[9.5rem] object-contain object-left dark:block sm:max-w-none md:h-9" />
+          <div className="flex h-16 items-center gap-2 px-4 md:gap-3 md:px-8">
+            <Link
+              to="/"
+              className="flex h-11 min-w-0 flex-1 items-center overflow-hidden md:flex-none md:grow-0"
+              aria-label="Cazatalentos"
+              onClick={() => setMenuOpen(false)}
+            >
+              <img
+                src="/logo-light.svg"
+                alt=""
+                className="h-7 w-auto max-w-[6.75rem] object-contain object-left dark:hidden sm:h-8 sm:max-w-[9rem] md:h-9 md:max-w-none"
+              />
+              <img
+                src="/logo.svg"
+                alt=""
+                className="hidden h-7 w-auto max-w-[6.75rem] object-contain object-left dark:block sm:h-8 sm:max-w-[9rem] md:h-9 md:max-w-none"
+              />
             </Link>
             <nav className="hidden items-center gap-6 md:flex">
               <Link to="/explorar" className="text-sm font-semibold tracking-wide uppercase">Explorar</Link>
               <Link to="/como-funciona" className="text-sm font-semibold tracking-wide uppercase">Cómo funciona</Link>
             </nav>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="relative z-10 ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
               <ThemeButton />
               {WalletStack ? (
                 <Suspense
@@ -185,7 +198,7 @@ function ThemeButton() {
         localStorage.setItem('ct-theme', next ? 'dark' : 'light');
         setDark(next);
       }}
-      className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-ink/20 text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta dark:border-cream/20 dark:text-cream"
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/20 bg-paper text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-terracotta dark:border-cream/20 dark:bg-night dark:text-cream"
     >
       {dark ? <SunIcon /> : <MoonIcon />}
     </button>
