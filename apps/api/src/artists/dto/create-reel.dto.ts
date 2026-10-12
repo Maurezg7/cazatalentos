@@ -1,6 +1,6 @@
 import { IsIn, IsInt, IsOptional, IsString, Matches, MaxLength, Min } from 'class-validator';
 
-const VIDEO = /^data:video\/(?:mp4|webm);base64,[A-Za-z0-9+/=\s]+$/;
+const VIDEO = /^data:video\/(?:mp4|webm)(?:;[\w.=,-]+)*;base64,[A-Za-z0-9+/=\s]+$/;
 const SIGNATURE = /^0x[a-fA-F0-9]{130}$/;
 
 export class CreateReelDto {

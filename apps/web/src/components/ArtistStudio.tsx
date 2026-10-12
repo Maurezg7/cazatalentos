@@ -12,6 +12,8 @@ import { COUNTRIES } from '../lib/places';
 import { signedWrite } from '../lib/write-auth';
 import { contrastRatio, NAME_FONTS, nameFontClass, type NameFont } from '../lib/name-style';
 import { BIO_PALETTE } from './ArtistReels';
+import { Icon } from './Icon';
+import { SOCIAL_FIELDS, stableLinksJson } from './ArtistSocialLinks';
 
 const EMOJIS = ['🎵', '🎸', '🎤', '🔥', '❤️', '🙌', '🎶', '✨', '💚', '🥁'];
 const MAX_IMAGE_BYTES = 1_500_000;
@@ -29,6 +31,7 @@ type ArtistStudioProps = {
   region: string | null;
   photo: string | null;
   cover: string | null;
+  links: Record<string, string> | null;
   onProfileSaved: () => void;
 };
 
@@ -45,6 +48,7 @@ export function ArtistStudio({
   region,
   photo,
   cover,
+  links,
   onProfileSaved,
 }: ArtistStudioProps) {
   const posts = useQuery({
@@ -60,16 +64,17 @@ export function ArtistStudio({
         <>
           <ProfileEditor
             artistId={artistId}
-      bio={bio}
-      bioWash={bioWash}
-      bioInk={bioInk}
-      nameFont={nameFont}
-      displayName={displayName}
-      country={country}
-      region={region}
-      photo={photo}
-      cover={cover}
-      onSaved={onProfileSaved}
+            bio={bio}
+            bioWash={bioWash}
+            bioInk={bioInk}
+            nameFont={nameFont}
+            displayName={displayName}
+            country={country}
+            region={region}
+            photo={photo}
+            cover={cover}
+            links={links}
+            onSaved={onProfileSaved}
           />
           <PostComposer artistId={artistId} />
         </>
@@ -101,6 +106,7 @@ function ProfileEditor({
   region,
   photo,
   cover,
+  links,
   onSaved,
 }: {
   artistId: number;
@@ -113,6 +119,7 @@ function ProfileEditor({
   region: string | null;
   photo: string | null;
   cover: string | null;
+  links: Record<string, string> | null;
   onSaved: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -121,6 +128,7 @@ function ProfileEditor({
   const [draftCover, setDraftCover] = useState<string | undefined>(undefined);
   const [draftCountry, setDraftCountry] = useState(country ?? '');
   const [draftRegion, setDraftRegion] = useState(region ?? '');
+  const [draftLinks, setDraftLinks] = useState<Record<string, string>>(() => links ?? {});
   const [wash, setWash] = useState(bioWash ?? '#123524');
   const [ink, setInk] = useState(bioInk ?? '#f3e9d6');
   const [font, setFont] = useState<NameFont>(nameFont === 'serif' || nameFont === 'sans' ? nameFont : 'display');
@@ -138,6 +146,7 @@ function ProfileEditor({
         nameFont: font,
         country: draftCountry,
         region: draftRegion.trim(),
+        links: stableLinksJson(draftLinks),
       });
       return updateArtistProfile({ artistId, ...proof });
     },
@@ -162,6 +171,7 @@ function ProfileEditor({
           setDraftCover(undefined);
           setDraftCountry(country ?? '');
           setDraftRegion(region ?? '');
+          setDraftLinks(links ?? {});
           setWash(bioWash ?? '#123524');
           setInk(bioInk ?? '#f3e9d6');
           setFont(nameFont === 'serif' || nameFont === 'sans' ? nameFont : 'display');
@@ -270,6 +280,26 @@ function ProfileEditor({
           className="min-h-11 rounded-lg border border-[#414d2b] bg-[#181d13] px-2 text-sm text-[#f5f7ee]"
         />
       </label>
+      <div className="flex flex-col gap-2">
+        <span className="text-xs text-[#d6debe]">Redes</span>
+        {SOCIAL_FIELDS.map((field) => (
+          <label key={field.key} className="flex items-center gap-2 text-xs text-[#d6debe]">
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#414d2b] bg-[#181d13]">
+              <Icon name={field.icon} className="h-4 w-4" />
+            </span>
+            <input
+              type="url"
+              value={draftLinks[field.key] ?? ''}
+              placeholder={field.placeholder}
+              onChange={(event) =>
+                setDraftLinks((current) => ({ ...current, [field.key]: event.target.value }))
+              }
+              className="min-h-11 w-full rounded-lg border border-[#414d2b] bg-[#181d13] px-2 text-sm text-[#f5f7ee]"
+              aria-label={field.label}
+            />
+          </label>
+        ))}
+      </div>
       <ImageField
         label="Foto de perfil"
         accept="image/jpeg,image/png,image/webp,image/gif"

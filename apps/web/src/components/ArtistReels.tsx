@@ -33,9 +33,13 @@ export function ArtistReels({ artistId, isOwner, ownerAddress }: ArtistReelsProp
             type="button"
             disabled={!ownerAddress}
             onClick={() => setEditorOpen(true)}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#8ea459] px-3 font-mono text-[0.6875rem] font-bold text-[#d6debe] disabled:opacity-50"
+            aria-label="Nuevo reel"
+            title="Nuevo reel"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#8ea459] bg-[#24301a] px-3 font-mono text-[0.6875rem] font-bold text-[#d6debe] disabled:opacity-50"
           >
-            <Icon name="camera-reels" className="h-4 w-4" />
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#5c6b3a] text-[#12160d]">
+              <Icon name="camera-reels" className="h-4 w-4" />
+            </span>
             Nuevo reel
           </button>
         ) : null}
@@ -96,6 +100,41 @@ function pickRecorderMime(): { mimeType: string; extension: 'webm' | 'mp4' } {
     }
   }
   return { mimeType: '', extension: 'webm' };
+}
+
+/** Phones often emit `video/webm;codecs=…` — API only accepts bare mp4/webm. */
+function normalizeReelDataUrl(dataUrl: string, hintType = ''): string {
+  const comma = dataUrl.indexOf(',');
+  if (comma < 0) throw new Error('No se pudo preparar el video.');
+  const header = dataUrl.slice(0, comma).toLowerCase();
+  const payload = dataUrl.slice(comma + 1).replace(/\s/g, '');
+  const hay = `${hintType} ${header}`.toLowerCase();
+  const kind = hay.includes('webm')
+    ? 'video/webm'
+    : hay.includes('mp4') || hay.includes('quicktime') || hay.includes('m4v')
+      ? 'video/mp4'
+      : null;
+  if (!kind) throw new Error('El reel tiene que ser MP4 o WebM.');
+  return `data:${kind};base64,${payload}`;
+}
+
+function blobToReelDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') {
+        reject(new Error('No se pudo leer el video.'));
+        return;
+      }
+      try {
+        resolve(normalizeReelDataUrl(reader.result, blob.type));
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error('No se pudo preparar el video.'));
+      }
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el video.'));
+    reader.readAsDataURL(blob);
+  });
 }
 
 function ReelEditor({
@@ -205,15 +244,7 @@ function ReelEditor({
       setError('El reel pesa más de 8 MB.');
       return;
     }
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') resolve(reader.result);
-        else reject(new Error('No se pudo leer el video.'));
-      };
-      reader.onerror = () => reject(new Error('No se pudo leer el video.'));
-      reader.readAsDataURL(file);
-    });
+    const dataUrl = await blobToReelDataUrl(file);
     clearPreviewUrl();
     const objectUrl = URL.createObjectURL(file);
     previewUrlRef.current = objectUrl;
@@ -299,13 +330,14 @@ function ReelEditor({
       const objectUrl = URL.createObjectURL(blob);
       previewUrlRef.current = objectUrl;
       setPreviewUrl(objectUrl);
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') setVideo(reader.result);
-        else setError('No se pudo preparar el preview del reel.');
-      };
-      reader.onerror = () => setError('No se pudo preparar el preview del reel.');
-      reader.readAsDataURL(blob);
+      void blobToReelDataUrl(blob)
+        .then((dataUrl) => {
+          setVideo(dataUrl);
+          setError(null);
+        })
+        .catch((reason: unknown) => {
+          setError(reason instanceof Error ? reason.message : 'No se pudo preparar el preview del reel.');
+        });
     };
     recorderRef.current = recorder;
     recorder.start(250);

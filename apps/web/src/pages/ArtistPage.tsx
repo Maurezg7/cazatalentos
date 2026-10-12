@@ -6,7 +6,7 @@ import { parseEther } from 'viem';
 import { useAccount, useBalance } from 'wagmi';
 import { fetchArtistPools, fetchArtistProfile, mediaUrl } from '../lib/api';
 import { ActionButton } from '../components/ActionButton';
-import { Icon, type IconName } from '../components/Icon';
+import { Icon } from '../components/Icon';
 import { useEntrySheet } from '../components/EntrySheet';
 import { ArtistHeader, CoverMedia } from '../components/ArtistHeader';
 import { ArtistStudio } from '../components/ArtistStudio';
@@ -172,8 +172,8 @@ function ArtistPublicBody({
         supporterCount={profile.supporterCount}
         poolCount={pools.length}
         accent={profile.bioInk}
+        linkEntries={linkEntries}
       />
-      <ArtistLinks entries={linkEntries} />
       <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
         <div className="lg:col-span-7">
           <ArtistStudio
@@ -189,6 +189,7 @@ function ArtistPublicBody({
             region={profile.region}
             photo={mediaUrl(profile.photo)}
             cover={mediaUrl(profile.cover)}
+            links={profile.links}
             onProfileSaved={onProfileSaved}
           />
         </div>
@@ -288,8 +289,8 @@ function ArtistWalletBody({
         supporterCount={supporterCount}
         poolCount={pools.length}
         accent={profile.bioInk}
+        linkEntries={linkEntries}
       />
-      <ArtistLinks entries={linkEntries} />
 
       <div className="mt-8 grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
         <div className="lg:col-span-7">
@@ -306,6 +307,7 @@ function ArtistWalletBody({
             region={profile.region}
             photo={mediaUrl(profile.photo)}
             cover={mediaUrl(profile.cover)}
+            links={profile.links}
             onProfileSaved={onProfileSaved}
           />
         </div>
@@ -494,64 +496,3 @@ function ArtistWalletBody({
     </>
   );
 }
-
-function ArtistLinks({ entries }: { entries: Array<[string, string]> }) {
-  if (entries.length === 0) return null;
-  return (
-    <ul className="mt-5 flex flex-wrap items-center gap-2">
-      {entries.map(([label, href]) => {
-        const icon = socialIconFor(label, href);
-        const pretty = prettyLinkLabel(label);
-        return (
-          <li key={label}>
-            <a
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={pretty}
-              title={pretty}
-              className="inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-[#414d2b] bg-[#1c2416] px-3 font-mono text-[0.6875rem] text-[#d6debe] transition-colors hover:border-[#8ea459] hover:text-[#f5f7ee]"
-            >
-              <Icon name={icon} className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">{pretty}</span>
-            </a>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function prettyLinkLabel(label: string): string {
-  const trimmed = label.trim();
-  if (trimmed.length === 0) return 'Link';
-  const known: Record<string, string> = {
-    instagram: 'Instagram',
-    youtube: 'YouTube',
-    spotify: 'Spotify',
-    twitter: 'X',
-    x: 'X',
-    tiktok: 'TikTok',
-    facebook: 'Facebook',
-    bandcamp: 'Bandcamp',
-    github: 'GitHub',
-    website: 'Web',
-    web: 'Web',
-  };
-  const key = trimmed.toLowerCase();
-  if (known[key]) return known[key];
-  return trimmed.slice(0, 1).toUpperCase() + trimmed.slice(1);
-}
-
-function socialIconFor(label: string, href: string): IconName {
-  const hay = `${label} ${href}`.toLowerCase();
-  if (hay.includes('instagram')) return 'instagram';
-  if (hay.includes('youtube') || hay.includes('youtu.be')) return 'youtube';
-  if (hay.includes('spotify')) return 'spotify';
-  if (hay.includes('tiktok')) return 'tiktok';
-  if (hay.includes('facebook') || hay.includes('fb.com')) return 'facebook';
-  if (hay.includes('twitter') || hay.includes('x.com') || label.toLowerCase() === 'x') return 'twitter-x';
-  if (hay.includes('github')) return 'github';
-  if (hay.includes('bandcamp') || hay.includes('soundcloud') || hay.includes('music')) return 'music-note-beamed';
-  if (hay.includes('http') || hay.includes('www') || hay.includes('web')) return 'globe2';
-  return 'link-45deg';}

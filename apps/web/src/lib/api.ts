@@ -209,7 +209,7 @@ export async function createArtistReel(payload: {
   video: string;
 }): Promise<ArtistReel> {
   const { artistId, ...body } = payload;
-  return apiSend<ArtistReel>(`/api/artists/${artistId}/reels`, 'POST', body);
+  return apiSend<ArtistReel>(`/api/artists/${artistId}/reels`, 'POST', body, 90_000);
 }
 
 export async function fetchArtistPosts(artistId: number): Promise<ArtistPost[]> {
@@ -228,6 +228,7 @@ export async function updateArtistProfile(payload: {
   nameFont?: 'display' | 'serif' | 'sans';
   country?: string;
   region?: string;
+  links?: string;
 }): Promise<ArtistProfile> {
   const { artistId, ...body } = payload;
   return apiSend<ArtistProfile>(`/api/artists/${artistId}/profile`, 'PATCH', body);
@@ -244,13 +245,18 @@ export async function createArtistPost(payload: {
   return apiSend<ArtistPost>(`/api/artists/${artistId}/posts`, 'POST', body);
 }
 
-async function apiSend<T>(path: string, method: 'POST' | 'PATCH', payload: unknown): Promise<T> {
+async function apiSend<T>(
+  path: string,
+  method: 'POST' | 'PATCH',
+  payload: unknown,
+  timeoutMs = 20_000,
+): Promise<T> {
   const requestId = createRequestId();
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: { 'content-type': 'application/json', 'x-request-id': requestId },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) {
     const body = await readErrorBody(res);

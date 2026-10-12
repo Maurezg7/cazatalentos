@@ -283,11 +283,13 @@ export class ArtistsService {
       nameFont?: string;
       country?: string;
       region?: string;
+      links?: string;
     },
   ): Promise<ArtistProfile> {
     const bio = input.bio?.trim();
     const country = input.country?.trim().toUpperCase() ?? '';
     const region = input.region?.trim() ?? '';
+    const links = input.links !== undefined ? parseLinksJson(input.links) : undefined;
     if (input.bioWash && input.bioInk && contrastRatio(input.bioWash, input.bioInk) < 4.5) {
       throw new BadRequestException('El color del nombre no se lee sobre ese fondo.');
     }
@@ -300,11 +302,15 @@ export class ArtistsService {
       ...(input.nameFont !== undefined ? { nameFont: input.nameFont } : {}),
       ...(input.country !== undefined ? { country } : {}),
       ...(input.region !== undefined ? { region } : {}),
+      ...(input.links !== undefined ? { links: input.links } : {}),
     });
     await this.prisma.artist.update({
       where: { id: artist.id },
       data: {
         ...(bio !== undefined ? { bio } : {}),
+        ...(links !== undefined
+          ? { links: Object.keys(links).length > 0 ? links : Prisma.DbNull }
+          : {}),
         ...(input.photo !== undefined
           ? {
               photo: isHttpUrl(input.photo)
@@ -357,8 +363,10 @@ export class ArtistsService {
     const overlayText = input.overlayText?.trim() ?? '';
     const filter = input.filter ?? 'none';
     const textPlace = input.textPlace === 'top' || input.textPlace === 'bottom' ? input.textPlace : 'middle';
-    const match = /^data:(video\/(?:mp4|webm));base64,([A-Za-z0-9+/=\s]+)$/.exec(input.video);
+    const match =
+      /^data:(video\/(?:mp4|webm))(?:;[\w.=,-]+)*;base64,([A-Za-z0-9+/=\s]+)$/.exec(input.video);
     if (!match) throw new BadRequestException('El reel tiene que ser MP4 o WebM');
+    const mime = match[1];
     const bytes = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
     if (bytes.length > MAX_REEL_BYTES) {
       throw new BadRequestException('El reel pesa más de 8 MB');
@@ -370,7 +378,7 @@ export class ArtistsService {
       textPlace,
       video: input.video,
     });
-    const ext = match[1] === 'video/webm' ? 'webm' : 'mp4';
+    const ext = mime === 'video/webm' ? 'webm' : 'mp4';
     const row = await this.prisma.artistReel.create({
       data: {
         artistId: artist.id,
@@ -685,4 +693,27 @@ function asLinks(value: Prisma.JsonValue | null): Record<string, string> | null 
     if (typeof entry === 'string') links[key] = entry;
   }
   return Object.keys(links).length > 0 ? links : null;
+}
+
+function parseLinksJson(raw: string): Record<string, string> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new BadRequestException('Las redes no tienen un formato válido.');
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new BadRequestException('Las redes no tienen un formato válido.');
+  }
+  const links: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(parsed)) {
+    if (typeof entry !== 'string') continue;
+    const href = entry.trim();
+    if (!href) continue;
+    if (!/^https?:\/\//i.test(href)) {
+      throw new BadRequestException(`El link de ${key} tiene que empezar con https://`);
+    }
+    links[key.trim().toLowerCase()] = href;
+  }
+  return links;
 }

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { nameFontClass, readableInk } from '../lib/name-style';
 import { flagEmoji } from '../lib/places';
 import { ArtistReels } from './ArtistReels';
+import { ArtistSocialLinks } from './ArtistSocialLinks';
 
 type ArtistHeaderProps = {
   artistId: bigint;
@@ -18,6 +19,7 @@ type ArtistHeaderProps = {
   supporterCount: number;
   poolCount: number;
   accent: string | null;
+  linkEntries?: Array<[string, string]>;
 };
 
 export function ArtistHeader({
@@ -35,6 +37,7 @@ export function ArtistHeader({
   supporterCount,
   poolCount,
   accent,
+  linkEntries = [],
 }: ArtistHeaderProps) {
   const acta = artistId.toString().padStart(3, '0');
   const initial = name.trim().slice(0, 1).toUpperCase() || 'A';
@@ -89,6 +92,8 @@ export function ArtistHeader({
             <dd className="font-serif text-xl italic" style={{ color: accent ?? '#c6a15a' }}>{poolsLabel}</dd>
           </div>
         </dl>
+
+        <ArtistSocialLinks entries={linkEntries} className="mt-1" />
       </div>
 
       {bio ? (

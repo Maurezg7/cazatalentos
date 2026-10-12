@@ -51,4 +51,10 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(40)
   region?: string;
+
+  /** JSON string of Record<string, string>, e.g. {"instagram":"https://…"} */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  links?: string;
 }
