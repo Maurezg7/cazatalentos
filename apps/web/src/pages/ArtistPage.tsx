@@ -105,7 +105,7 @@ export function ArtistPage() {
               profile={profile}
               displayName={displayName}
               pools={pools}
-              poolsLoading={poolsQuery.isLoading}
+              poolsLoading={poolsQuery.isLoading && !poolsQuery.data}
               linkEntries={linkEntries}
               onProfileSaved={() => {
                 void profileQuery.refetch();
@@ -120,7 +120,7 @@ export function ArtistPage() {
               profile={profile}
               displayName={displayName}
               pools={pools}
-              poolsLoading={poolsQuery.isLoading}
+              poolsLoading={poolsQuery.isLoading && !poolsQuery.data}
               linkEntries={linkEntries}
               onEnter={openEntry}
               onProfileSaved={() => {
