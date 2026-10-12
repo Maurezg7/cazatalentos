@@ -101,7 +101,7 @@ export function ConnectButton() {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-[60] mt-2 flex w-56 flex-col gap-0.5 rounded-xl bg-surface-container-high p-1 shadow-2xl"
+          className="absolute right-0 top-full z-[80] mt-2 flex w-56 flex-col gap-0.5 rounded-xl border border-ink/10 bg-surface-container-high p-1 shadow-2xl dark:border-cream/10"
         >
           <button
             type="button"

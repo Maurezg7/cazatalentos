@@ -55,7 +55,7 @@ export function Layout() {
     <div className="flex min-h-dvh justify-center bg-paper font-body text-ink dark:bg-night dark:text-cream">
       <div className="relative flex min-h-dvh w-full min-w-0 max-w-[480px] flex-col md:max-w-none">
         <header className="app-header sticky top-0 z-50 border-b border-ink/10 pt-[env(safe-area-inset-top,0px)] dark:border-cream/10">
-          <div className="flex h-16 min-w-0 items-center gap-2 overflow-hidden px-3 sm:px-4 md:gap-3 md:px-8">
+          <div className="flex h-16 min-w-0 items-center gap-2 px-3 sm:px-4 md:gap-3 md:px-8">
             <Link
               to="/"
               className="relative z-0 flex h-11 min-w-0 flex-1 items-center overflow-hidden pr-1 md:flex-none md:grow-0 md:pr-0"
