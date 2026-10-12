@@ -81,17 +81,21 @@ export function ConnectButton() {
   const tail = address.slice(-4);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex h-11 items-center gap-1.5 rounded-full bg-surface-container-high px-3 shadow-md transition-transform active:scale-95"
+        className="flex h-11 max-w-[5.75rem] items-center gap-1 rounded-xl bg-surface-container-high px-2 shadow-md transition-transform active:scale-95 sm:max-w-none sm:gap-1.5 sm:rounded-full sm:px-3"
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={`Cuenta ${shortAddress(address)}`}
       >
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-secondary" />
-        <span className="font-mono text-[0.6875rem] text-primary">{shortAddress(address)}</span>
-        <Icon name="chevron-down" className={`h-3 w-3 text-outline transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
+        <span className="truncate font-mono text-[0.625rem] text-primary sm:text-[0.6875rem]">
+          <span className="sm:hidden">{tail}</span>
+          <span className="hidden sm:inline">{shortAddress(address)}</span>
+        </span>
+        <Icon name="chevron-down" className={`hidden h-3 w-3 shrink-0 text-outline transition-transform duration-200 sm:inline ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open ? (

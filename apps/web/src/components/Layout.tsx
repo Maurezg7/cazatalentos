@@ -55,29 +55,29 @@ export function Layout() {
     <div className="flex min-h-dvh justify-center bg-paper font-body text-ink dark:bg-night dark:text-cream">
       <div className="relative flex min-h-dvh w-full min-w-0 max-w-[480px] flex-col md:max-w-none">
         <header className="app-header sticky top-0 z-50 border-b border-ink/10 pt-[env(safe-area-inset-top,0px)] dark:border-cream/10">
-          <div className="flex h-16 items-center gap-2 px-4 md:gap-3 md:px-8">
+          <div className="flex h-16 min-w-0 items-center gap-2 overflow-hidden px-3 sm:px-4 md:gap-3 md:px-8">
             <Link
               to="/"
-              className="flex h-11 min-w-0 flex-1 items-center overflow-hidden md:flex-none md:grow-0"
+              className="relative z-0 flex h-11 min-w-0 flex-1 items-center overflow-hidden pr-1 md:flex-none md:grow-0 md:pr-0"
               aria-label="Cazatalentos"
               onClick={() => setMenuOpen(false)}
             >
               <img
                 src="/logo-light.svg"
                 alt=""
-                className="h-7 w-auto max-w-[6.75rem] object-contain object-left dark:hidden sm:h-8 sm:max-w-[9rem] md:h-9 md:max-w-none"
+                className="h-7 w-auto max-w-full object-contain object-left dark:hidden sm:h-8 md:h-9 md:max-w-[12rem]"
               />
               <img
                 src="/logo.svg"
                 alt=""
-                className="hidden h-7 w-auto max-w-[6.75rem] object-contain object-left dark:block sm:h-8 sm:max-w-[9rem] md:h-9 md:max-w-none"
+                className="hidden h-7 w-auto max-w-full object-contain object-left dark:block sm:h-8 md:h-9 md:max-w-[12rem]"
               />
             </Link>
             <nav className="hidden items-center gap-6 md:flex">
               <Link to="/explorar" className="text-sm font-semibold tracking-wide uppercase">Explorar</Link>
               <Link to="/como-funciona" className="text-sm font-semibold tracking-wide uppercase">Cómo funciona</Link>
             </nav>
-            <div className="relative z-10 ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="relative z-20 ml-auto flex shrink-0 items-center gap-1 bg-paper pl-1 dark:bg-night sm:gap-1.5 md:gap-2">
               <ThemeButton />
               {WalletStack ? (
                 <Suspense
