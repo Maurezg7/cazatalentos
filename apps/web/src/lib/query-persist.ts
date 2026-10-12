@@ -5,7 +5,7 @@ import type { Persister } from '@tanstack/react-query-persist-client';
 /** Keep read models around so a reload / offline return does not blank the UI. */
 export const QUERY_GC_TIME = 1000 * 60 * 60 * 24; // 24h
 export const QUERY_STALE_TIME = 1000 * 60 * 5; // 5m
-export const QUERY_CACHE_KEY = 'ct-query-cache-v2';
+export const QUERY_CACHE_KEY = 'ct-query-cache-v3';
 export const QUERY_CACHE_MAX_AGE = QUERY_GC_TIME;
 
 const PERSISTED_ROOT_KEYS = new Set([

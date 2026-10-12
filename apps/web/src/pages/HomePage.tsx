@@ -320,20 +320,13 @@ function Step({ n, title, detail }: { n: string; title: string; detail: string }
 }
 
 function artistFotoUrl(artista: Pick<ArtistaExplorar, 'id' | 'foto'>): string | null {
-  const fromApi = mediaUrl(artista.foto);
-  // Prefer static seed assets when the API still points at a dead /api/media path.
-  if (fromApi && fromApi.includes('/api/media/artists/')) {
-    return `/artists/${artista.id}-photo.jpg`;
-  }
-  return fromApi ?? `/artists/${artista.id}-photo.jpg`;
+  // Uploaded photos live in Neon and are served from /api/media/artists/…/photo.
+  // Only fall back to static seed assets when the API has no foto at all.
+  return mediaUrl(artista.foto) ?? `/artists/${artista.id}-photo.jpg`;
 }
 
 function artistPortadaUrl(artista: Pick<ArtistaExplorar, 'id' | 'portada'>): string | null {
-  const fromApi = mediaUrl(artista.portada);
-  if (fromApi && fromApi.includes('/api/media/artists/')) {
-    return `/artists/${artista.id}-cover.jpg`;
-  }
-  return fromApi ?? `/artists/${artista.id}-cover.jpg`;
+  return mediaUrl(artista.portada) ?? `/artists/${artista.id}-cover.jpg`;
 }
 
 function ArtistAvatar({

@@ -21,6 +21,7 @@ function useWarmArtist() {
 export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
   const warm = useWarmArtist();
   const [fotoFailed, setFotoFailed] = useState(false);
+  // Prefer API media URLs (uploaded images in Neon). Seed static files are fallback only.
   const portada = mediaUrl(artista.portada) ?? `/artists/${artista.id}-cover.jpg`;
   const foto = mediaUrl(artista.foto) ?? `/artists/${artista.id}-photo.jpg`;
   const cerrado = motivo(artista);
