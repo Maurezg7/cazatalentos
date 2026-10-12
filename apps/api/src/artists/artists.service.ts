@@ -314,20 +314,10 @@ export class ArtistsService {
         ...(links !== undefined
           ? { links: Object.keys(links).length > 0 ? links : Prisma.DbNull }
           : {}),
-        ...(input.photo !== undefined
-          ? {
-              photo: isHttpUrl(input.photo)
-                ? input.photo
-                : await this.writeArtistImage(artist.id, 'photo', input.photo),
-            }
-          : {}),
-        ...(input.cover !== undefined
-          ? {
-              cover: isHttpUrl(input.cover)
-                ? input.cover
-                : await this.writeArtistImage(artist.id, 'cover', input.cover),
-            }
-          : {}),
+        // Persist photo/cover in Neon Text — Render disk is ephemeral and was
+        // wiping uploads on every restart.
+        ...(input.photo !== undefined ? { photo: persistArtistImage(input.photo) } : {}),
+        ...(input.cover !== undefined ? { cover: persistArtistImage(input.cover) } : {}),
         ...(input.bioWash !== undefined ? { bioWash: input.bioWash } : {}),
         ...(input.bioInk !== undefined ? { bioInk: input.bioInk } : {}),
         ...(input.nameFont !== undefined ? { nameFont: input.nameFont } : {}),
@@ -460,9 +450,17 @@ export class ArtistsService {
 
   async streamArtistImage(id: number, kind: 'photo' | 'cover'): Promise<StreamableFile> {
     const artist = await this.prisma.artist.findUnique({ where: { id } });
-    const name = kind === 'photo' ? artist?.photo : artist?.cover;
-    if (!name || name.startsWith('data:')) throw new NotFoundException();
-    return this.streamFile(ARTIST_DIR, name);
+    const stored = kind === 'photo' ? artist?.photo : artist?.cover;
+    if (!stored) throw new NotFoundException();
+    if (stored.startsWith('data:')) {
+      const match = /^data:image\/(jpeg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)$/.exec(stored);
+      if (!match) throw new NotFoundException();
+      const bytes = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+      const type = match[1] === 'jpeg' ? 'image/jpeg' : `image/${match[1]}`;
+      return new StreamableFile(bytes, { type });
+    }
+    if (isHttpUrl(stored) || stored.startsWith('/artists/')) throw new NotFoundException();
+    return this.streamFile(ARTIST_DIR, stored);
   }
 
   private toReel(row: {
@@ -513,17 +511,11 @@ export class ArtistsService {
   ): Promise<string | null> {
     if (!current) return null;
     if (isHttpUrl(current) || current.startsWith('/artists/')) return current;
-    if (!current.startsWith('data:')) {
-      // Bust browser cache when the same /photo|/cover path is rewritten on disk.
-      return `/api/media/artists/${id}/${kind}?v=${encodeURIComponent(current)}`;
-    }
-    const fileName = await this.writeArtistImage(id, kind, current);
-    await this.prisma.artist.update({ where: { id }, data: { [kind]: fileName } });
-    return `/api/media/artists/${id}/${kind}?v=${encodeURIComponent(fileName)}`;
-  }
-
-  private async writeArtistImage(id: number, kind: 'photo' | 'cover', dataUrl: string): Promise<string> {
-    return this.writeImageFile(ARTIST_DIR, `${id}-${kind}`, dataUrl);
+    // data: URLs and legacy on-disk filenames are both served from /api/media.
+    const version = current.startsWith('data:')
+      ? String(current.length)
+      : current;
+    return `/api/media/artists/${id}/${kind}?v=${encodeURIComponent(version)}`;
   }
 
   private async writeImageFile(dir: string, baseName: string, dataUrl: string): Promise<string> {
@@ -674,8 +666,20 @@ function isHttpUrl(value: string): boolean {
 function publicArtistImage(id: number, kind: 'photo' | 'cover', current: string | null): string | null {
   if (!current) return null;
   if (isHttpUrl(current) || current.startsWith('/artists/')) return current;
-  if (current.startsWith('data:')) return null;
+  // Keep list payloads small: clients fetch bytes via the media route.
   return `/api/media/artists/${id}/${kind}`;
+}
+
+/** Keep durable references in Postgres (Neon). Reject anything that is not a usable image ref. */
+function persistArtistImage(value: string): string {
+  const trimmed = value.trim();
+  if (isHttpUrl(trimmed) || trimmed.startsWith('/artists/')) return trimmed;
+  const match = /^data:image\/(jpeg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)$/.exec(trimmed);
+  if (!match) throw new BadRequestException('La imagen tiene que ser JPEG, PNG, WebP o GIF');
+  const bytes = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+  if (bytes.length === 0) throw new BadRequestException('La imagen está vacía');
+  if (bytes.length > MAX_IMAGE_BYTES) throw new BadRequestException('La imagen pesa más de 1.5 MB');
+  return `data:image/${match[1]};base64,${match[2].replace(/\s/g, '')}`;
 }
 
 function contrastRatio(wash: string, ink: string): number {

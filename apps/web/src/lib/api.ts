@@ -5,15 +5,17 @@ export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
 export function mediaUrl(value: string | null | undefined, cacheBust?: string | number): string | null {
   if (!value) return null;
-  // Seeded assets live under /artists. Uploaded photo/cover stay on the API
-  // (/api/media/artists/…) — do not remap those or uploads never show up.
+  // data: URLs are already usable. Seeded assets live under /artists.
+  // Uploaded photo/cover are served from the API (/api/media/artists/…).
   let url = value;
-  if (value.startsWith('/artists/')) {
+  if (value.startsWith('data:')) {
+    url = value;
+  } else if (value.startsWith('/artists/')) {
     url = value;
   } else if (value.startsWith('/api/')) {
     url = `${API_BASE}${value}`;
   }
-  if (cacheBust === undefined || cacheBust === '') return url;
+  if (value.startsWith('data:') || cacheBust === undefined || cacheBust === '') return url;
   const join = url.includes('?') ? '&' : '?';
   return `${url}${join}v=${encodeURIComponent(String(cacheBust))}`;
 }
