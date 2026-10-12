@@ -112,7 +112,9 @@ function ReelEditor({
   const streamRef = useRef<MediaStream | null>(null);
   const autoStopRef = useRef<number | null>(null);
   const tickRef = useRef<number | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
   const [video, setVideo] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -136,6 +138,14 @@ function ReelEditor({
     }
   }
 
+  function clearPreviewUrl() {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setPreviewUrl(null);
+  }
+
   function stopCamera() {
     clearTimers();
     recorderRef.current = null;
@@ -144,7 +154,13 @@ function ReelEditor({
     if (liveRef.current) liveRef.current.srcObject = null;
   }
 
-  useEffect(() => () => stopCamera(), []);
+  useEffect(
+    () => () => {
+      stopCamera();
+      clearPreviewUrl();
+    },
+    [],
+  );
 
   // Attach the live stream only after the <video> is mounted (fixes black preview on phones).
   useEffect(() => {
@@ -197,23 +213,47 @@ function ReelEditor({
       reader.onerror = () => reject(new Error('No se pudo leer el video.'));
       reader.readAsDataURL(file);
     });
+    clearPreviewUrl();
+    const objectUrl = URL.createObjectURL(file);
+    previewUrlRef.current = objectUrl;
+    setPreviewUrl(objectUrl);
     setError(null);
     setVideo(dataUrl);
+  }
+
+  async function preferWideLens(track: MediaStreamTrack) {
+    const capabilities = track.getCapabilities?.() as
+      | (MediaTrackCapabilities & { zoom?: { min: number; max: number } })
+      | undefined;
+    if (!capabilities?.zoom) return;
+    try {
+      // Phones that expose zoom: pull to the minimum (often the “0.5x / wide” feel).
+      await track.applyConstraints({
+        advanced: [{ zoom: capabilities.zoom.min } as MediaTrackConstraintSet],
+      });
+    } catch {
+      // Ignore — not all browsers honor zoom constraints.
+    }
   }
 
   async function openCamera(nextFacing: 'user' | 'environment' = facing) {
     setError(null);
     setVideo(null);
+    clearPreviewUrl();
     stopCamera();
     try {
+      // Avoid forcing 720x1280: on phones that crops the sensor and looks like 2x zoom.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: {
           facingMode: { ideal: nextFacing },
-          width: { ideal: 720 },
-          height: { ideal: 1280 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          aspectRatio: { ideal: 16 / 9 },
         },
       });
+      const track = stream.getVideoTracks()[0];
+      if (track) await preferWideLens(track);
       streamRef.current = stream;
       setFacing(nextFacing);
       setCameraOpen(true);
@@ -252,14 +292,24 @@ function ReelEditor({
       setCameraOpen(false);
       setRecording(false);
       setSeconds(0);
+      if (blob.size === 0) {
+        setError('No se grabó nada. Probá de nuevo o subí un archivo.');
+        return;
+      }
       if (blob.size > MAX_REEL_BYTES) {
         setError('La grabación pesa más de 8 MB. Hacela más corta.');
         return;
       }
+      clearPreviewUrl();
+      const objectUrl = URL.createObjectURL(blob);
+      previewUrlRef.current = objectUrl;
+      setPreviewUrl(objectUrl);
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') setVideo(reader.result);
+        else setError('No se pudo preparar el preview del reel.');
       };
+      reader.onerror = () => setError('No se pudo preparar el preview del reel.');
       reader.readAsDataURL(blob);
     };
     recorderRef.current = recorder;
@@ -280,6 +330,7 @@ function ReelEditor({
 
   function closeEditor() {
     stopCamera();
+    clearPreviewUrl();
     setCameraOpen(false);
     onClose();
   }
@@ -305,7 +356,7 @@ function ReelEditor({
           </button>
         </div>
 
-        {!video && !cameraOpen ? (
+        {!video && !previewUrl && !cameraOpen ? (
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -328,13 +379,14 @@ function ReelEditor({
 
         {cameraOpen ? (
           <div className="flex flex-col items-center gap-4">
-            <div className="relative w-full max-w-[220px] overflow-hidden rounded-[1.5rem] bg-black ring-1 ring-[#3c4626]">
+            <div className="relative w-full max-w-[260px] overflow-hidden rounded-[1.5rem] bg-black ring-1 ring-[#3c4626]">
               <video
                 ref={liveRef}
                 autoPlay
                 muted
                 playsInline
-                className={`aspect-[9/16] w-full bg-black object-cover ${mirrorPreview ? 'scale-x-[-1]' : ''}`}
+                // object-contain avoids the “2x zoomed face” crop phones get with object-cover.
+                className={`aspect-[9/16] w-full bg-black object-contain ${mirrorPreview ? 'scale-x-[-1]' : ''}`}
               />
               {recording ? (
                 <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-2.5 py-1">
@@ -345,7 +397,7 @@ function ReelEditor({
                 </div>
               ) : (
                 <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center font-mono text-[0.625rem] uppercase tracking-wider text-white/80">
-                  Listo para grabar
+                  Vista amplia · listo para grabar
                 </p>
               )}
             </div>
@@ -394,15 +446,20 @@ function ReelEditor({
           </div>
         ) : null}
 
-        {video ? (
+        {video || previewUrl ? (
           <div className="flex flex-col gap-3">
-            <div className="relative mx-auto w-40">
+            <div className="relative mx-auto w-full max-w-[260px]">
               <video
-                src={video}
-                className="aspect-[9/16] w-40 rounded-2xl bg-black object-cover"
+                key={previewUrl ?? video ?? 'reel-preview'}
+                src={previewUrl ?? video ?? undefined}
+                className="aspect-[9/16] w-full rounded-2xl bg-black object-contain"
                 style={{ filter: reelFilterCss(filter) }}
                 controls
                 playsInline
+                preload="auto"
+                autoPlay
+                muted
+                loop
               />
               {overlayText ? (
                 <p className={`pointer-events-none absolute inset-x-2 text-center text-sm font-semibold text-white drop-shadow ${placeClass}`}>
@@ -410,10 +467,14 @@ function ReelEditor({
                 </p>
               ) : null}
             </div>
+            <p className="text-center font-mono text-[0.625rem] text-[#879373]">
+              Tocá ▶ para escuchar el audio. Arranca en silencio para poder auto-reproducir en el celu.
+            </p>
             <button
               type="button"
               onClick={() => {
                 setVideo(null);
+                clearPreviewUrl();
                 void openCamera();
               }}
               className="mx-auto inline-flex min-h-10 items-center gap-2 rounded-full border border-[#414d2b] px-3 font-mono text-[0.6875rem] text-[#d6debe]"
@@ -465,11 +526,11 @@ function ReelEditor({
             </label>
             <button
               type="button"
-              disabled={upload.isPending}
+              disabled={upload.isPending || !video}
               onClick={() => upload.mutate()}
               className="min-h-11 rounded-xl bg-[#5c6b3a] font-mono text-[0.6875rem] font-bold text-[#12160d] disabled:opacity-50"
             >
-              {upload.isPending ? 'Publicando…' : 'Publicar reel'}
+              {upload.isPending ? 'Publicando…' : !video ? 'Preparando video…' : 'Publicar reel'}
             </button>
           </div>
         ) : null}
