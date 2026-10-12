@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import {
   BadRequestException,
   ForbiddenException,
@@ -457,7 +458,8 @@ export class ArtistsService {
       if (!match) throw new NotFoundException();
       const bytes = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
       const type = match[1] === 'jpeg' ? 'image/jpeg' : `image/${match[1]}`;
-      return new StreamableFile(bytes, { type });
+      // Fastify rejects bare Buffer objects in some Nest versions — wrap as a stream.
+      return new StreamableFile(Readable.from(bytes), { type, length: bytes.length });
     }
     if (isHttpUrl(stored) || stored.startsWith('/artists/')) throw new NotFoundException();
     return this.streamFile(ARTIST_DIR, stored);
@@ -509,13 +511,21 @@ export class ArtistsService {
     kind: 'photo' | 'cover',
     current: string | null,
   ): Promise<string | null> {
-    if (!current) return null;
-    if (isHttpUrl(current) || current.startsWith('/artists/')) return current;
-    // data: URLs and legacy on-disk filenames are both served from /api/media.
-    const version = current.startsWith('data:')
-      ? String(current.length)
-      : current;
-    return `/api/media/artists/${id}/${kind}?v=${encodeURIComponent(version)}`;
+    const resolved = resolvePublicArtistImage(id, kind, current);
+    // Heal legacy ephemeral filenames (`2-photo.jpg`) back to static web assets.
+    if (
+      resolved &&
+      resolved.startsWith('/artists/') &&
+      current &&
+      !current.startsWith('/artists/') &&
+      !current.startsWith('data:') &&
+      !isHttpUrl(current)
+    ) {
+      void this.prisma.artist
+        .update({ where: { id }, data: { [kind]: resolved } })
+        .catch(() => undefined);
+    }
+    return resolved;
   }
 
   private async writeImageFile(dir: string, baseName: string, dataUrl: string): Promise<string> {
@@ -532,6 +542,8 @@ export class ArtistsService {
 
   private streamFile(dir: string, fileName: string): StreamableFile {
     if (!/^[\w.-]+$/.test(fileName)) throw new NotFoundException();
+    const path = join(dir, fileName);
+    if (!existsSync(path)) throw new NotFoundException();
     const type =
       fileName.endsWith('.png') ? 'image/png'
       : fileName.endsWith('.webp') ? 'image/webp'
@@ -539,7 +551,7 @@ export class ArtistsService {
       : fileName.endsWith('.webm') ? 'video/webm'
       : fileName.endsWith('.mp4') ? 'video/mp4'
       : 'image/jpeg';
-    return new StreamableFile(createReadStream(join(dir, fileName)), { type });
+    return new StreamableFile(createReadStream(path), { type });
   }
 
   private async requireArtist(id: number) {
@@ -664,10 +676,26 @@ function isHttpUrl(value: string): boolean {
 }
 
 function publicArtistImage(id: number, kind: 'photo' | 'cover', current: string | null): string | null {
+  return resolvePublicArtistImage(id, kind, current);
+}
+
+function resolvePublicArtistImage(
+  id: number,
+  kind: 'photo' | 'cover',
+  current: string | null,
+): string | null {
   if (!current) return null;
   if (isHttpUrl(current) || current.startsWith('/artists/')) return current;
-  // Keep list payloads small: clients fetch bytes via the media route.
-  return `/api/media/artists/${id}/${kind}`;
+  if (current.startsWith('data:')) {
+    return `/api/media/artists/${id}/${kind}?v=${current.length}`;
+  }
+  // Legacy writes used ephemeral `uploads/artists/{id}-photo.jpg` filenames.
+  // Those files are gone on Render — map them back to the static web assets.
+  const legacy = new RegExp(`^${id}-${kind}\\.(jpe?g|png|webp|gif)$`, 'i');
+  if (legacy.test(current)) {
+    return `/artists/${id}-${kind}.jpg`;
+  }
+  return `/api/media/artists/${id}/${kind}?v=${encodeURIComponent(current)}`;
 }
 
 /** Keep durable references in Postgres (Neon). Reject anything that is not a usable image ref. */

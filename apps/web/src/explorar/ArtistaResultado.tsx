@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { mediaUrl } from '../lib/api';
@@ -19,21 +20,22 @@ function useWarmArtist() {
 
 export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
   const warm = useWarmArtist();
-  const portada = mediaUrl(artista.portada);
-  const foto = mediaUrl(artista.foto);
+  const [fotoFailed, setFotoFailed] = useState(false);
+  const portada = mediaUrl(artista.portada) ?? `/artists/${artista.id}-cover.jpg`;
+  const foto = mediaUrl(artista.foto) ?? `/artists/${artista.id}-photo.jpg`;
   const cerrado = motivo(artista);
   const initial = artista.nombre.trim().slice(0, 1).toUpperCase() || 'A';
   return (
     <article className="pozo-card flex min-h-[280px] flex-col overflow-hidden" role="listitem">
       <div className="relative h-24">
-        {portada ? <img src={portada} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full" style={{ background: 'var(--line)' }} />}
+        {portada ? <img src={portada} alt="" className="h-full w-full object-cover" onError={(event) => { event.currentTarget.style.display = 'none'; }} /> : <div className="h-full w-full" style={{ background: 'var(--line)' }} />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
         {artista.patrocinado ? (
           <span className="absolute left-2 top-2 rounded-full bg-[#1c1814] px-2 py-1 text-xs font-semibold text-[#f3e9d6]">Patrocinado</span>
         ) : null}
         <span className="absolute bottom-2 left-3 inline-flex h-11 w-11 overflow-hidden rounded-full border-2 border-[#f3e9d6] bg-[#1c1814] shadow-md">
-          {foto ? (
-            <img src={foto} alt="" className="h-full w-full object-cover" />
+          {!fotoFailed ? (
+            <img src={foto} alt="" className="h-full w-full object-cover" onError={() => setFotoFailed(true)} />
           ) : (
             <span className="flex h-full w-full items-center justify-center font-serif text-sm text-[#f3e9d6]">{initial}</span>
           )}

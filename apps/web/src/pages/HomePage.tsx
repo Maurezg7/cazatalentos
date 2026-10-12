@@ -97,11 +97,11 @@ export function HomePage() {
                 className="ticket w-56 shrink-0 snap-start p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-terracotta"
               >
                 <div className="relative h-36 overflow-hidden rounded-xl bg-ink/10">
-                  {artista.portada ? (
-                    <img src={mediaUrl(artista.portada) || ''} alt="" className="h-full w-full object-cover" />
+                  {artistPortadaUrl(artista) ? (
+                    <img src={artistPortadaUrl(artista) || ''} alt="" className="h-full w-full object-cover" />
                   ) : null}
                   <ArtistAvatar
-                    src={mediaUrl(artista.foto)}
+                    src={artistFotoUrl(artista)}
                     name={artista.nombre}
                     className="absolute bottom-2 left-2 h-12 w-12 border-2 border-cream shadow-md"
                   />
@@ -247,7 +247,7 @@ function SponsoredCarousel({
         <div className="flex">
           {rows.map((row, position) => {
             const active = position === index % rows.length;
-            const portada = mediaUrl(row.portada);
+            const portada = artistPortadaUrl(row);
             return (
               <article
                 key={row.id}
@@ -260,7 +260,7 @@ function SponsoredCarousel({
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/15 to-transparent" />
                 <ArtistAvatar
-                  src={mediaUrl(row.foto)}
+                  src={artistFotoUrl(row)}
                   name={row.nombre}
                   className="absolute left-3 top-3 h-14 w-14 border-2 border-cream/90 shadow-lg"
                 />
@@ -319,6 +319,23 @@ function Step({ n, title, detail }: { n: string; title: string; detail: string }
   );
 }
 
+function artistFotoUrl(artista: Pick<ArtistaExplorar, 'id' | 'foto'>): string | null {
+  const fromApi = mediaUrl(artista.foto);
+  // Prefer static seed assets when the API still points at a dead /api/media path.
+  if (fromApi && fromApi.includes('/api/media/artists/')) {
+    return `/artists/${artista.id}-photo.jpg`;
+  }
+  return fromApi ?? `/artists/${artista.id}-photo.jpg`;
+}
+
+function artistPortadaUrl(artista: Pick<ArtistaExplorar, 'id' | 'portada'>): string | null {
+  const fromApi = mediaUrl(artista.portada);
+  if (fromApi && fromApi.includes('/api/media/artists/')) {
+    return `/artists/${artista.id}-cover.jpg`;
+  }
+  return fromApi ?? `/artists/${artista.id}-cover.jpg`;
+}
+
 function ArtistAvatar({
   src,
   name,
@@ -328,11 +345,18 @@ function ArtistAvatar({
   name: string;
   className?: string;
 }) {
+  const [failed, setFailed] = useState(false);
   const initial = name.trim().slice(0, 1).toUpperCase() || 'A';
+  const showImage = Boolean(src) && !failed;
   return (
     <span className={`inline-flex shrink-0 overflow-hidden rounded-full bg-ink/80 ${className ?? ''}`.trim()}>
-      {src ? (
-        <img src={src} alt="" className="h-full w-full object-cover" />
+      {showImage ? (
+        <img
+          src={src ?? undefined}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
       ) : (
         <span className="flex h-full w-full items-center justify-center font-display text-sm text-cream">{initial}</span>
       )}
