@@ -310,6 +310,25 @@ button:disabled,
   }
 }
 
+@keyframes reel-rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.reel-rec-dot {
+  animation: reel-rec-pulse 1s ease-in-out infinite;
+}
+
+.reel-shutter:active {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-rec-dot {
+    animation: none;
+  }
+}
+
 body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
