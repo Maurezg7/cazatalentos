@@ -510,10 +510,13 @@ export class ArtistsService {
   ): Promise<string | null> {
     if (!current) return null;
     if (isHttpUrl(current) || current.startsWith('/artists/')) return current;
-    if (!current.startsWith('data:')) return `/api/media/artists/${id}/${kind}`;
+    if (!current.startsWith('data:')) {
+      // Bust browser cache when the same /photo|/cover path is rewritten on disk.
+      return `/api/media/artists/${id}/${kind}?v=${encodeURIComponent(current)}`;
+    }
     const fileName = await this.writeArtistImage(id, kind, current);
     await this.prisma.artist.update({ where: { id }, data: { [kind]: fileName } });
-    return `/api/media/artists/${id}/${kind}`;
+    return `/api/media/artists/${id}/${kind}?v=${encodeURIComponent(fileName)}`;
   }
 
   private async writeArtistImage(id: number, kind: 'photo' | 'cover', dataUrl: string): Promise<string> {

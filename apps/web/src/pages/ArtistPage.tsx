@@ -283,7 +283,8 @@ function ArtistWalletBody({
   return (
     <>
       <CoverMedia
-        src={mediaUrl(profile.cover)}
+        key={`cover-${media.bust}`}
+        src={mediaUrl(profile.cover, media.bust)}
         name={displayName}
         wash={profile.bioWash ?? null}
         canEdit={Boolean(mediaEdit)}
@@ -300,7 +301,7 @@ function ArtistWalletBody({
         nameFont={profile.nameFont}
         country={profile.country}
         region={profile.region}
-        photo={mediaUrl(profile.photo)}
+        photo={mediaUrl(profile.photo, media.bust)}
         isOwner={isOwner}
         ownerAddress={address}
         supporterCount={supporterCount}

@@ -12,6 +12,7 @@ export function useArtistMediaSave(artistId: number, onSaved: () => void) {
   const queryClient = useQueryClient();
   const { signMessageAsync } = useSignMessage();
   const [error, setError] = useState<string | null>(null);
+  const [bust, setBust] = useState(() => Date.now());
 
   const save = useMutation({
     mutationFn: async ({ field, dataUrl }: { field: Field; dataUrl: string }) => {
@@ -22,6 +23,7 @@ export function useArtistMediaSave(artistId: number, onSaved: () => void) {
     },
     onSuccess: async () => {
       setError(null);
+      setBust(Date.now());
       onSaved();
       await queryClient.invalidateQueries({ queryKey: ['artist-profile', String(artistId)] });
     },
@@ -34,9 +36,10 @@ export function useArtistMediaSave(artistId: number, onSaved: () => void) {
     try {
       setError(null);
       const dataUrl = await readArtistImage(file, file.type === 'image/gif');
-      save.mutate({ field, dataUrl });
+      await save.mutateAsync({ field, dataUrl });
     } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : 'No se pudo leer la imagen.');
+      if (reason instanceof Error && reason.message) setError(reason.message);
+      else setError('No se pudo leer la imagen.');
     }
   }
 
@@ -44,6 +47,7 @@ export function useArtistMediaSave(artistId: number, onSaved: () => void) {
     pickAndSave,
     saving: save.isPending,
     error,
+    bust,
     clearError: () => setError(null),
   };
 }
@@ -62,10 +66,10 @@ export function CoverEditButton({
         type="button"
         disabled={saving}
         onClick={() => inputRef.current?.click()}
-        className="absolute right-3 top-3 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-[#8ea459] bg-[#192013]/95 px-3 font-mono text-[0.6875rem] font-bold text-[#e4e3d9] shadow-lg disabled:opacity-60"
+        className="absolute right-3 top-3 z-30 inline-flex h-10 items-center gap-2 rounded-full bg-black/55 px-3 font-mono text-[0.6875rem] font-semibold text-white backdrop-blur-sm transition hover:bg-black/70 disabled:opacity-60"
       >
-        <Icon name="image" className="h-4 w-4" />
-        {saving ? 'Subiendo…' : 'Cambiar portada'}
+        <Icon name="image" className="h-3.5 w-3.5" />
+        {saving ? 'Guardando…' : 'Portada'}
       </button>
       <input
         ref={inputRef}
@@ -95,12 +99,12 @@ export function PhotoEditBadge({
       <button
         type="button"
         disabled={saving}
-        aria-label={saving ? 'Subiendo foto…' : 'Cambiar foto de perfil'}
+        aria-label={saving ? 'Guardando foto…' : 'Cambiar foto de perfil'}
         title="Cambiar foto de perfil"
         onClick={() => inputRef.current?.click()}
-        className="absolute bottom-0 right-0 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#14180f] bg-[#5c6b3a] text-[#12160d] shadow-lg disabled:opacity-60"
+        className="absolute bottom-1 right-1 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white shadow-md backdrop-blur-sm transition hover:bg-black/75 disabled:opacity-60"
       >
-        <Icon name="camera" className="h-4 w-4" />
+        <Icon name="camera" className="h-3.5 w-3.5" />
       </button>
       <input
         ref={inputRef}

@@ -71,8 +71,6 @@ export function ArtistStudio({
             displayName={displayName}
             country={country}
             region={region}
-            photo={photo}
-            cover={cover}
             links={links}
             onSaved={onProfileSaved}
           />
@@ -104,8 +102,6 @@ function ProfileEditor({
   displayName,
   country,
   region,
-  photo,
-  cover,
   links,
   onSaved,
 }: {
@@ -117,15 +113,11 @@ function ProfileEditor({
   displayName: string;
   country: string | null;
   region: string | null;
-  photo: string | null;
-  cover: string | null;
   links: Record<string, string> | null;
   onSaved: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [draftBio, setDraftBio] = useState(bio ?? '');
-  const [draftPhoto, setDraftPhoto] = useState<string | undefined>(undefined);
-  const [draftCover, setDraftCover] = useState<string | undefined>(undefined);
   const [draftCountry, setDraftCountry] = useState(country ?? '');
   const [draftRegion, setDraftRegion] = useState(region ?? '');
   const [draftLinks, setDraftLinks] = useState<Record<string, string>>(() => links ?? {});
@@ -139,8 +131,6 @@ function ProfileEditor({
     mutationFn: async () => {
       const proof = await signedWrite(signMessageAsync, artistId, 'profile', {
         bio: draftBio.trim(),
-        ...(draftPhoto !== undefined ? { photo: draftPhoto } : {}),
-        ...(draftCover !== undefined ? { cover: draftCover } : {}),
         bioWash: wash,
         bioInk: ink,
         nameFont: font,
@@ -167,8 +157,6 @@ function ProfileEditor({
         type="button"
         onClick={() => {
           setDraftBio(bio ?? '');
-          setDraftPhoto(undefined);
-          setDraftCover(undefined);
           setDraftCountry(country ?? '');
           setDraftRegion(region ?? '');
           setDraftLinks(links ?? {});
@@ -178,10 +166,9 @@ function ProfileEditor({
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#8ea459] bg-[#5c6b3a] px-3.5 font-mono text-[0.6875rem] font-bold tracking-wide text-[#12160d] sm:w-auto"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#8ea459] bg-[#5c6b3a] px-3.5 font-mono text-[0.6875rem] font-bold tracking-wide text-[#12160d] sm:w-auto"
       >
-        <Icon name="camera" className="h-4 w-4" />
-        Editar perfil, foto y portada
+        Editar perfil
       </button>
     );
   }
@@ -195,20 +182,6 @@ function ProfileEditor({
         save.mutate();
       }}
     >
-      <ImageField
-        label="Foto de perfil"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        current={draftPhoto ?? photo}
-        onPick={setDraftPhoto}
-        onError={setError}
-      />
-      <ImageField
-        label="Portada"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-        current={draftCover ?? cover}
-        onPick={setDraftCover}
-        onError={setError}
-      />
       <label className="flex flex-col gap-1 text-xs text-[#d6debe]">
         Biografía
         <textarea
@@ -508,45 +481,5 @@ function MediaPickButton({
       </span>
       <span className="font-mono text-[0.6875rem] font-bold uppercase tracking-wide">{label}</span>
     </button>
-  );
-}
-
-function ImageField({
-  label,
-  accept,
-  current,
-  onPick,
-  onError,
-}: {
-  label: string;
-  accept: string;
-  current: string | null | undefined;
-  onPick: (value: string) => void;
-  onError: (message: string) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-2 text-xs text-[#d6debe]">
-      <span className="font-mono text-[0.6875rem] font-bold uppercase tracking-wide">{label}</span>
-      {current ? <img src={current} alt="" className="h-28 w-full rounded-xl object-cover ring-1 ring-[#414d2b]" /> : null}
-      <span className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#8ea459] bg-[#24301a] px-3 font-mono text-[0.6875rem] font-bold text-[#d6debe]">
-        <Icon name={label.toLowerCase().includes('portada') ? 'image' : 'camera'} className="h-4 w-4" />
-        Elegir {label.toLowerCase()}
-        <input
-          type="file"
-          accept={accept}
-          className="sr-only"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = '';
-            if (!file) return;
-            void readArtistImage(file, file.type === 'image/gif')
-              .then(onPick)
-              .catch((reason: unknown) => {
-                onError(reason instanceof Error ? reason.message : 'No se pudo leer la imagen.');
-              });
-          }}
-        />
-      </span>
-    </label>
   );
 }

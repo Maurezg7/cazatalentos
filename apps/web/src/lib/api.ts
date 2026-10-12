@@ -3,16 +3,19 @@ import { createRequestId } from './observability/request-id';
 
 export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
-export function mediaUrl(value: string | null | undefined): string | null {
+export function mediaUrl(value: string | null | undefined, cacheBust?: string | number): string | null {
   if (!value) return null;
-  // Artist photos/covers ship with the web app under /artists — the API media
-  // disk on Render is ephemeral, so remap those paths to the static files.
-  const artistMedia = value.match(/\/api\/media\/artists\/(\d+)\/(photo|cover)(?:\?.*)?$/);
-  if (artistMedia) {
-    return `/artists/${artistMedia[1]}-${artistMedia[2]}.jpg`;
+  // Seeded assets live under /artists. Uploaded photo/cover stay on the API
+  // (/api/media/artists/…) — do not remap those or uploads never show up.
+  let url = value;
+  if (value.startsWith('/artists/')) {
+    url = value;
+  } else if (value.startsWith('/api/')) {
+    url = `${API_BASE}${value}`;
   }
-  if (value.startsWith('/artists/')) return value;
-  return value.startsWith('/api/') ? `${API_BASE}${value}` : value;
+  if (cacheBust === undefined || cacheBust === '') return url;
+  const join = url.includes('?') ? '&' : '?';
+  return `${url}${join}v=${encodeURIComponent(String(cacheBust))}`;
 }
 
 async function apiGet<T>(path: string, fallback: T): Promise<T> {
@@ -231,7 +234,8 @@ export async function updateArtistProfile(payload: {
   links?: string;
 }): Promise<ArtistProfile> {
   const { artistId, ...body } = payload;
-  return apiSend<ArtistProfile>(`/api/artists/${artistId}/profile`, 'PATCH', body);
+  const hasMedia = Boolean(payload.photo || payload.cover);
+  return apiSend<ArtistProfile>(`/api/artists/${artistId}/profile`, 'PATCH', body, hasMedia ? 60_000 : 20_000);
 }
 
 export async function createArtistPost(payload: {
