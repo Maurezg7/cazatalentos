@@ -100,6 +100,11 @@ export function HomePage() {
                   {artista.portada ? (
                     <img src={mediaUrl(artista.portada) || ''} alt="" className="h-full w-full object-cover" />
                   ) : null}
+                  <ArtistAvatar
+                    src={mediaUrl(artista.foto)}
+                    name={artista.nombre}
+                    className="absolute bottom-2 left-2 h-12 w-12 border-2 border-cream shadow-md"
+                  />
                 </div>
                 <h3 className="mt-3 font-display text-xl uppercase leading-none">{artista.nombre}</h3>
                 <p className="mt-1 flex items-center gap-1 text-sm">
@@ -254,6 +259,11 @@ function SponsoredCarousel({
                   <div className="absolute inset-0 bg-ink" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/15 to-transparent" />
+                <ArtistAvatar
+                  src={mediaUrl(row.foto)}
+                  name={row.nombre}
+                  className="absolute left-3 top-3 h-14 w-14 border-2 border-cream/90 shadow-lg"
+                />
                 <span className="absolute right-3 top-3 rounded-lg bg-cream px-2 py-1 text-[0.6875rem] font-bold tracking-wide text-ink">PATROCINADO</span>
                 <div className="relative flex min-h-44 flex-col justify-end gap-2 p-4 sm:min-h-48">
                   <h3 className="font-display text-2xl uppercase leading-none sm:text-3xl">{row.nombre}</h3>
@@ -306,5 +316,26 @@ function Step({ n, title, detail }: { n: string; title: string; detail: string }
         <p className="mt-1 text-sm">{detail}</p>
       </div>
     </li>
+  );
+}
+
+function ArtistAvatar({
+  src,
+  name,
+  className,
+}: {
+  src: string | null;
+  name: string;
+  className?: string;
+}) {
+  const initial = name.trim().slice(0, 1).toUpperCase() || 'A';
+  return (
+    <span className={`inline-flex shrink-0 overflow-hidden rounded-full bg-ink/80 ${className ?? ''}`.trim()}>
+      {src ? (
+        <img src={src} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center font-display text-sm text-cream">{initial}</span>
+      )}
+    </span>
   );
 }

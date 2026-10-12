@@ -19,6 +19,7 @@ export type ArtistaExplorar = {
   generos: string[];
   pioneros: number;
   patrocinado: boolean;
+  foto: string | null;
   portada: string | null;
   pozo: PozoExplorar | null;
 };

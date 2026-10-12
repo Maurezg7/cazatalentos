@@ -11,6 +11,7 @@ function artista(partial: Partial<ArtistaExplorar> = {}): ArtistaExplorar {
     generos: [],
     pioneros: 4,
     patrocinado: false,
+    foto: null,
     portada: null,
     pozo: {
       montoWei: '10',

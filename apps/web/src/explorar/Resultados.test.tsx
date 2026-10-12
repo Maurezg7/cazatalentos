@@ -11,6 +11,7 @@ const artista: ArtistaExplorar = {
   generos: [],
   pioneros: 2,
   patrocinado: true,
+  foto: null,
   portada: null,
   pozo: null,
 };

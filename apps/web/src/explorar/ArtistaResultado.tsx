@@ -20,7 +20,9 @@ function useWarmArtist() {
 export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
   const warm = useWarmArtist();
   const portada = mediaUrl(artista.portada);
+  const foto = mediaUrl(artista.foto);
   const cerrado = motivo(artista);
+  const initial = artista.nombre.trim().slice(0, 1).toUpperCase() || 'A';
   return (
     <article className="pozo-card flex min-h-[280px] flex-col overflow-hidden" role="listitem">
       <div className="relative h-24">
@@ -29,7 +31,14 @@ export function ArtistaCard({ artista }: { artista: ArtistaExplorar }) {
         {artista.patrocinado ? (
           <span className="absolute left-2 top-2 rounded-full bg-[#1c1814] px-2 py-1 text-xs font-semibold text-[#f3e9d6]">Patrocinado</span>
         ) : null}
-        <h2 className="display-num absolute bottom-2 left-3 right-3 m-0 break-words text-xl uppercase text-[#f3e9d6]">{artista.nombre}</h2>
+        <span className="absolute bottom-2 left-3 inline-flex h-11 w-11 overflow-hidden rounded-full border-2 border-[#f3e9d6] bg-[#1c1814] shadow-md">
+          {foto ? (
+            <img src={foto} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center font-serif text-sm text-[#f3e9d6]">{initial}</span>
+          )}
+        </span>
+        <h2 className="display-num absolute bottom-2 left-16 right-3 m-0 break-words text-xl uppercase text-[#f3e9d6]">{artista.nombre}</h2>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <p className="tone-muted m-0 text-sm">{artista.ciudad}</p>

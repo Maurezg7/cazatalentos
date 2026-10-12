@@ -105,6 +105,7 @@ export class ArtistsService {
       generos: string[];
       pioneros: number;
       patrocinado: boolean;
+      foto: string | null;
       portada: string | null;
       pozo: {
         id: number;
@@ -160,6 +161,7 @@ export class ArtistsService {
         generos: [] as string[],
         pioneros: row.supporterCount,
         patrocinado: row.promoRank > 0,
+        foto: publicArtistImage(row.id, 'photo', row.photo),
         portada: publicArtistImage(row.id, 'cover', row.cover),
         pozo: open
           ? {
@@ -202,6 +204,7 @@ export class ArtistsService {
         generos: row.generos,
         pioneros: row.pioneros,
         patrocinado: row.patrocinado,
+        foto: row.foto,
         portada: row.portada,
         pozo: row.pozo,
       })),
