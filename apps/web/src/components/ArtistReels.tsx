@@ -407,18 +407,14 @@ function ReelEditor({
         {cameraOpen ? (
           <div className="flex flex-col items-center gap-4">
             <div className="relative w-full max-w-[280px] overflow-hidden rounded-[1.5rem] bg-black ring-1 ring-[#3c4626]">
-              <div className="relative aspect-[9/16] w-full overflow-hidden bg-black">
-                <video
-                  ref={liveRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  // ~0.5x visual: show full sensor framed smaller (phones often look like 2x otherwise).
-                  className={`absolute left-1/2 top-1/2 h-full w-full max-w-none origin-center object-contain ${
-                    mirrorPreview ? '-translate-x-1/2 -translate-y-1/2 scale-x-[-0.55] scale-y-[0.55]' : '-translate-x-1/2 -translate-y-1/2 scale-[0.55]'
-                  }`}
-                />
-              </div>
+              <video
+                ref={liveRef}
+                autoPlay
+                muted
+                playsInline
+                // Same framing as the published reel (fill 9:16) — no CSS shrink.
+                className={`aspect-[9/16] w-full bg-black object-cover ${mirrorPreview ? 'scale-x-[-1]' : ''}`}
+              />
               {recording ? (
                 <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-2.5 py-1">
                   <span className="reel-rec-dot inline-block h-2.5 w-2.5 rounded-full bg-[#ff3b30]" />
@@ -428,7 +424,7 @@ function ReelEditor({
                 </div>
               ) : (
                 <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center font-mono text-[0.625rem] uppercase tracking-wider text-white/80">
-                  Vista 0.5x · listo para grabar
+                  Listo para grabar
                 </p>
               )}
             </div>
@@ -483,7 +479,7 @@ function ReelEditor({
               <video
                 key={previewUrl ?? video ?? 'reel-preview'}
                 src={previewUrl ?? video ?? undefined}
-                className="aspect-[9/16] w-full rounded-2xl bg-black object-contain"
+                className="aspect-[9/16] w-full rounded-2xl bg-black object-cover"
                 style={{ filter: reelFilterCss(filter) }}
                 controls
                 playsInline
