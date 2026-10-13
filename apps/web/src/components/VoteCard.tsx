@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePublicClient } from 'wagmi';
+import { useT } from '../i18n/LocaleContext';
 import { formatCountdown } from '../lib/format';
 import { useVote } from '../lib/hooks';
 import { userFacingMessage } from '../lib/observability/decode-contract-error';
@@ -31,6 +32,7 @@ export function VoteCard({
   nowUnix,
   onVoted,
 }: VoteCardProps) {
+  const t = useT();
   const publicClient = usePublicClient();
   const { vote, isPending, isConfirming, reset } = useVote();
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function VoteCard({
 
   const eligible = userRank !== undefined && userRank > 0 && userRank <= pool.supportersAtOpen;
   const countdown = formatCountdown(pool.voteEnd, nowUnix);
-  const closed = countdown === 'Cerrada';
+  const closed = countdown === t('closed');
 
   async function onVote(approve: boolean) {
     setError(null);
@@ -60,7 +62,7 @@ export function VoteCard({
       }
       onVoted?.();
     } catch (error: unknown) {
-      setError(userFacingMessage(error, 'No se pudo registrar tu voto. Probá de nuevo.'));
+      setError(userFacingMessage(error, t('voteFailed')));
     }
   }
 
@@ -69,16 +71,16 @@ export function VoteCard({
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <span className="block font-mono text-[0.6875rem] uppercase tracking-widest text-comment">
-            Consenso activo
+            {t('voteActiveConsensus')}
           </span>
-          <h2 className="mt-0.5 font-serif text-xl font-semibold text-on-surface">Votación de pioneros</h2>
+          <h2 className="mt-0.5 font-serif text-xl font-semibold text-on-surface">{t('votePioneerTitle')}</h2>
         </div>
         <div className="rounded bg-surface-container-lowest px-2.5 py-1 text-right">
           <span className="block font-mono text-[0.6875rem] font-semibold text-primary-container">
-            {closed ? 'Cerrada' : countdown}
+            {closed ? t('closed') : countdown}
           </span>
           <span className="block font-mono text-[0.625rem] uppercase text-comment">
-            {closed ? 'Plazo' : 'Restante'}
+            {closed ? t('voteDeadline') : t('voteRemaining')}
           </span>
         </div>
       </div>
@@ -91,12 +93,12 @@ export function VoteCard({
           />
           <div
             className="absolute top-[-3px] left-[20%] h-3 w-px bg-comment"
-            title="Quórum legal 20%"
+            title={t('voteQuorumLegal')}
           />
         </div>
         <div className="flex items-center justify-between pt-0.5 font-mono text-[0.6875rem] text-comment">
           <span>0%</span>
-          <span>Quórum legal: 20%</span>
+          <span>{t('voteQuorumLegal')}</span>
           <span className="font-medium text-primary-container">{Math.min(100, Math.round(forRatio))}%</span>
         </div>
       </div>
@@ -105,15 +107,19 @@ export function VoteCard({
         <div className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-secondary" />
           <span className="text-on-surface">
-            A favor:{' '}
-            <span className="font-bold text-secondary">{pool.votesFor.toString()} (peso)</span>
+            {t('voteFor')}{' '}
+            <span className="font-bold text-secondary">
+              {pool.votesFor.toString()} {t('voteWeight')}
+            </span>
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-comment" />
           <span className="text-comment">
-            En contra:{' '}
-            <span className="font-semibold text-on-surface">{pool.votesAgainst.toString()} (peso)</span>
+            {t('voteAgainst')}{' '}
+            <span className="font-semibold text-on-surface">
+              {pool.votesAgainst.toString()} {t('voteWeight')}
+            </span>
           </span>
         </div>
       </div>
@@ -121,19 +127,19 @@ export function VoteCard({
       {quorumMet ? (
         <div className="flex items-center gap-2 rounded bg-secondary/10 px-3 py-2">
           <span className="font-mono text-[0.6875rem] font-semibold tracking-tight text-secondary">
-            Quórum alcanzado ✓
+            {t('voteQuorumReached')}
           </span>
         </div>
       ) : (
         <p className="font-mono text-[0.6875rem] text-comment">
-          Faltan {missing.toString()} de peso para el quórum
+          {t('voteQuorumMissing', { n: missing.toString() })}
         </p>
       )}
 
       {!closed && eligible && !userHasVoted ? (
         <div className="flex flex-col gap-2.5 pt-1">
           <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-comment">
-            Emitir decisión
+            {t('voteCastDecision')}
           </span>
           <div className="grid grid-cols-2 gap-2.5">
             <button
@@ -142,7 +148,7 @@ export function VoteCard({
               disabled={busy}
               className="flex h-11 items-center justify-center rounded bg-primary-container px-3 text-sm font-bold text-surface-container-lowest transition-colors disabled:opacity-40"
             >
-              {busy ? '…' : 'Votar a favor'}
+              {busy ? '…' : t('voteYes')}
             </button>
             <button
               type="button"
@@ -150,25 +156,25 @@ export function VoteCard({
               disabled={busy}
               className="flex h-11 items-center justify-center rounded px-3 text-sm font-medium text-on-surface shadow-[inset_0_0_0_1px_#e4e3d9] transition-colors disabled:opacity-40"
             >
-              {busy ? '…' : 'Votar en contra'}
+              {busy ? '…' : t('voteNo')}
             </button>
           </div>
           {userWeight !== undefined ? (
-            <p className="font-mono text-[0.6875rem] text-comment">Tu peso: {userWeight}</p>
+            <p className="font-mono text-[0.6875rem] text-comment">{t('voteYourWeight', { n: userWeight })}</p>
           ) : null}
         </div>
       ) : null}
 
       {userHasVoted ? (
         <p className="rounded bg-surface-container-lowest p-2.5 text-center font-mono text-[0.6875rem] text-secondary">
-          Ya votaste ✓
+          {t('voteAlready')}
         </p>
       ) : null}
 
       {!eligible ? (
         <div className="rounded bg-surface-container-lowest/70 p-2.5">
           <p className="font-mono text-[0.6875rem] leading-relaxed text-comment">
-            Solo los {pool.supportersAtOpen} pioneros que estaban antes de abrir el pozo pueden votar.
+            {t('voteOnlyEligible', { n: pool.supportersAtOpen })}
           </p>
         </div>
       ) : null}

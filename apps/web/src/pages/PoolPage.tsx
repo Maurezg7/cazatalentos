@@ -23,6 +23,7 @@ import {
   useSupporter,
 } from '../lib/hooks';
 import { userFacingMessage } from '../lib/observability/decode-contract-error';
+import { useT } from '../i18n/LocaleContext';
 
 function parsePoolId(raw: string | undefined): bigint | undefined {
   if (!raw || !/^\d+$/.test(raw)) return undefined;
@@ -35,6 +36,7 @@ function parsePoolId(raw: string | undefined): bigint | undefined {
 }
 
 export function PoolPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const poolId = parsePoolId(id);
   const queryClient = useQueryClient();
@@ -73,16 +75,11 @@ export function PoolPage() {
   }, []);
 
   if (poolId === undefined) {
-    return (
-      <ErrorState
-        title="Ese pozo no existe."
-        message="El link tiene que terminar con un número de pozo válido."
-      />
-    );
+    return <ErrorState title={t('poolNotFoundTitle')} message={t('poolNotFoundMsg')} />;
   }
 
   if (chain.isLoading) {
-    return <LoadingState label="Buscando el pozo…" />;
+    return <LoadingState label={t('searchingPool')} />;
   }
 
   const resolvedPoolId = poolId;
@@ -90,8 +87,8 @@ export function PoolPage() {
   if (chain.isError || !chain.pool) {
     return (
       <ErrorState
-        title="No encontramos ese pozo"
-        message="Puede que el link esté mal o que todavía no esté confirmado."
+        title={t('poolMissingTitle')}
+        message={t('poolMissingMsg')}
         onRetry={() => {
           void chain.refetch();
         }}
@@ -126,7 +123,7 @@ export function PoolPage() {
   const settledStatus = isSettled ? pool.status : preview.status;
   const deadlineYear = new Date(Number(pool.deadline) * 1000).getFullYear();
   const pioneerChip =
-    pool.supportersAtOpen === 1 ? '1 pionero' : `${pool.supportersAtOpen} pioneros`;
+    pool.supportersAtOpen === 1 ? t('pioneerOne') : t('pioneerMany', { n: pool.supportersAtOpen });
 
   async function refresh() {
     void chain.refetch();
@@ -148,7 +145,7 @@ export function PoolPage() {
       }
       await refresh();
     } catch (error: unknown) {
-      setActionError(userFacingMessage(error, 'No se pudo cerrar la votación. Probá de nuevo.'));
+      setActionError(userFacingMessage(error, t('voteCloseFail')));
     }
   }
 
@@ -162,7 +159,7 @@ export function PoolPage() {
       }
       await refresh();
     } catch (error: unknown) {
-      setActionError(userFacingMessage(error, 'No se pudo reclamar. Probá de nuevo en un momento.'));
+      setActionError(userFacingMessage(error, t('claimFail')));
     }
   }
 
@@ -176,13 +173,13 @@ export function PoolPage() {
       }
       await refresh();
     } catch (error: unknown) {
-      setActionError(userFacingMessage(error, 'No se pudo recuperar el pozo. Probá de nuevo en un momento.'));
+      setActionError(userFacingMessage(error, t('reclaimFail')));
     }
   }
 
   return (
     <section className="flex flex-col gap-6 rounded-3xl border border-[#3c4626] bg-[#14180f] p-4 pb-6 pt-4 text-[#e3e8d8] lg:gap-8 lg:p-8">
-      <h1 className="font-serif text-3xl italic text-[#f5f7ee]">Detalle del pozo</h1>
+      <h1 className="font-serif text-3xl italic text-[#f5f7ee]">{t('poolDetail')}</h1>
 
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10">
       <div className="flex flex-col gap-6 lg:col-span-5">
@@ -192,7 +189,7 @@ export function PoolPage() {
           status={settledStatus}
           year={deadlineYear}
           description={
-            description ?? (profileQuery.isLoading ? 'Buscando la descripción…' : 'Sin descripción')
+            description ?? (profileQuery.isLoading ? t('loadingDescription') : t('noDescription'))
           }
           amount={pool.amount}
           pioneerChip={pioneerChip}
@@ -201,7 +198,7 @@ export function PoolPage() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <span className="font-mono text-[0.6875rem] tracking-tight text-comment">
-              Registro #{poolId.toString().padStart(4, '0')}
+              {t('poolRegistry', { id: poolId.toString().padStart(4, '0') })}
             </span>
             <span
               className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 font-mono text-[0.6875rem] uppercase tracking-wider ${poolStatusColor(pool.status)}`}
@@ -214,17 +211,17 @@ export function PoolPage() {
           </div>
           <div className="flex items-baseline justify-between gap-3">
             <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-comment">
-              Pozo de recompensa
+              {t('rewardPool')}
             </p>
             <span className="rounded bg-surface-container px-2 py-1 font-mono text-[0.6875rem] text-on-surface-variant">
               {pioneerChip}
             </span>
           </div>
           <h2 className="pt-1 font-serif text-[1.75rem] italic leading-tight text-on-surface lg:text-4xl">
-            {description ?? (profileQuery.isLoading ? 'Buscando la descripción…' : 'Sin descripción')}
+            {description ?? (profileQuery.isLoading ? t('loadingDescription') : t('noDescription'))}
           </h2>
           <p className="font-mono text-[0.6875rem] text-comment">
-            Cierre: {formatDeadline(pool.deadline)}
+            {t('closesAt', { date: formatDeadline(pool.deadline) })}
           </p>
           {pool.evidenceURI ? (
             <a
@@ -233,7 +230,7 @@ export function PoolPage() {
               rel="noreferrer"
               className="font-mono text-[0.6875rem] text-tertiary hover:underline"
             >
-              Ver evidencia <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
+              {t('viewEvidence')} <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
             </a>
           ) : null}
         </div>
@@ -249,29 +246,20 @@ export function PoolPage() {
           />
         ) : canReclaimExpiredOpen ? (
           <div className="space-y-3">
-            <p className="text-sm text-on-surface-variant">
-              Se pasó la fecha límite y no se declaró el hito. Podés recuperar el pozo.
-            </p>
+            <p className="text-sm text-on-surface-variant">{t('poolExpiredReclaim')}</p>
             <ActionButton
-              label="Recuperar el pozo"
+              label={t('reclaimPool')}
               onClick={() => void handleReclaim()}
               loading={reclaimBusy}
               disabled={reclaimBusy}
             />
           </div>
         ) : deadlinePassed && isOwner && simOffset > 0n ? (
-          <p className="text-sm text-on-surface-variant">
-            Vista previa local: si se pasara la fecha límite, podrías recuperar el pozo. En la red
-            todavía no venció.
-          </p>
+          <p className="text-sm text-on-surface-variant">{t('poolExpiredPreview')}</p>
         ) : deadlinePassed ? (
-          <p className="text-sm text-on-surface-variant">
-            Se pasó la fecha límite y no se declaró el hito.
-          </p>
+          <p className="text-sm text-on-surface-variant">{t('poolExpiredNoMilestone')}</p>
         ) : (
-          <p className="text-sm text-on-surface-variant">
-            Este pozo sigue abierto. Todavía no se declaró el hito.
-          </p>
+          <p className="text-sm text-on-surface-variant">{t('poolStillOpen')}</p>
         )
       ) : null}
       </div>
@@ -298,18 +286,16 @@ export function PoolPage() {
           />
           {voteClosed ? (
             <ActionButton
-              label="Finalizar votación"
+              label={t('finalizeVote')}
               onClick={() => void handleFinalize()}
               loading={finalizeBusy}
               disabled={finalizeBusy}
             />
           ) : (
             <div className="flex items-center justify-between rounded bg-surface-container-lowest p-3">
-              <span className="font-mono text-xs text-on-surface-variant">
-                El cierre definitivo se habilitará al expirar el plazo.
-              </span>
+              <span className="font-mono text-xs text-on-surface-variant">{t('voteFinalizeHint')}</span>
               <span className="font-mono text-[0.625rem] uppercase tracking-wider text-comment">
-                En curso
+                {t('inProgress')}
               </span>
             </div>
           )}
@@ -341,17 +327,17 @@ export function PoolPage() {
           <div className="flex flex-col gap-2 rounded-xl bg-surface-container p-4">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[0.6875rem] uppercase text-comment">
-                Huella del hito
+                {t('milestoneHash')}
               </span>
-              <span className="font-mono text-[0.6875rem] text-tertiary">En cadena</span>
+              <span className="font-mono text-[0.6875rem] text-tertiary">{t('onChain')}</span>
             </div>
             <div className="flex items-center justify-between font-mono text-[0.6875rem] text-on-surface-variant">
-              <span>Hash</span>
+              <span>{t('hash')}</span>
               <span className="text-on-surface">{shortHash(pool.milestoneHash)}</span>
             </div>
             {previewSettled ? (
               <p className="font-mono text-[0.6875rem] text-comment">
-                Cierre real: {formatDeadline(pool.voteEnd)}
+                {t('realClose', { date: formatDeadline(pool.voteEnd) })}
               </p>
             ) : null}
           </div>
@@ -366,7 +352,7 @@ export function PoolPage() {
         to={`/artist/${pool.artistId.toString()}`}
         className="inline-flex items-center justify-center gap-1.5 py-2 font-mono text-sm text-tertiary hover:underline lg:justify-start"
       >
-        ← Volver al artista
+        {t('backToArtist')}
       </Link>
 
       <DevTimeTravel />
@@ -403,6 +389,7 @@ function SettledPoolHeader({
   amount: bigint;
   pioneerChip: string;
 }) {
+  const t = useT();
   const approved = status === 2;
   const rejected = status === 3;
   const pill = approved
@@ -417,7 +404,7 @@ function SettledPoolHeader({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
           <span className="font-mono text-[0.6875rem] uppercase text-comment">
-            Registro #{poolId.toString().padStart(4, '0')}
+            {t('poolRegistry', { id: poolId.toString().padStart(4, '0') })}
           </span>
           <span className="h-1 w-1 rounded-full bg-comment" />
           <span className="font-mono text-[0.6875rem] uppercase text-comment">
@@ -435,7 +422,7 @@ function SettledPoolHeader({
       <div className="relative flex flex-col gap-2 overflow-hidden rounded-xl bg-surface-container-low p-4 shadow-md">
         <div className="flex flex-col gap-1">
           <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-comment">
-            Pozo de reconocimiento
+            {t('recognitionPool')}
           </span>
           <h2 className="font-serif text-[1.75rem] italic leading-tight text-on-surface lg:text-4xl">
             {description}
@@ -444,7 +431,7 @@ function SettledPoolHeader({
         <div className="flex items-baseline justify-between gap-3 pt-1">
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-xl font-bold text-gold">{formatMON(amount)} MON</span>
-            <span className="font-mono text-[0.6875rem] text-comment">resguardo total</span>
+            <span className="font-mono text-[0.6875rem] text-comment">{t('totalReserveSuffix')}</span>
           </div>
           <span className="rounded bg-surface-container px-2 py-1 font-mono text-[0.6875rem] text-on-surface-variant">
             {pioneerChip}

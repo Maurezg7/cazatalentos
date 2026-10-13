@@ -4,6 +4,8 @@ import { Icon } from './Icon';
 import { LoadingState } from './LoadingState';
 import { hasWalletSession, useEntrySignal } from '../lib/entry-signal';
 import { WalletReadyProvider } from '../lib/wallet-ready';
+import { useLocale } from '../i18n/LocaleContext';
+import type { Locale } from '../i18n/runtime';
 
 const ConnectButton = lazy(() => import('./ConnectButton').then((m) => ({ default: m.ConnectButton })));
 const EntrySheetProvider = lazy(() =>
@@ -17,6 +19,7 @@ export function Layout() {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const { openEntry, walletRequested } = useEntrySignal();
+  const { t } = useLocale();
   const [WalletStack, setWalletStack] = useState<ComponentType<{ children: ReactNode }> | null>(null);
   const needsWalletNow =
     walletRequested || pathname.startsWith('/pool') || hasWalletSession();
@@ -74,10 +77,15 @@ export function Layout() {
               />
             </Link>
             <nav className="hidden items-center gap-6 md:flex">
-              <Link to="/explorar" className="text-sm font-semibold tracking-wide uppercase">Explorar</Link>
-              <Link to="/como-funciona" className="text-sm font-semibold tracking-wide uppercase">Cómo funciona</Link>
+              <Link to="/explorar" className="text-sm font-semibold tracking-wide uppercase">
+                {t('navExplore')}
+              </Link>
+              <Link to="/como-funciona" className="text-sm font-semibold tracking-wide uppercase">
+                {t('navHowItWorks')}
+              </Link>
             </nav>
             <div className="relative z-20 ml-auto flex shrink-0 items-center gap-1 bg-paper pl-1 dark:bg-night sm:gap-1.5 md:gap-2">
+              <LanguageToggle />
               <ThemeButton />
               {WalletStack ? (
                 <Suspense
@@ -86,7 +94,7 @@ export function Layout() {
                       <span className="loading-mark h-3.5 w-3.5" aria-hidden="true">
                         <span className="loading-mark-ring" />
                       </span>
-                      <span>Cargando…</span>
+                      <span>{t('loading')}</span>
                     </button>
                   }
                 >
@@ -104,10 +112,10 @@ export function Layout() {
                       <span className="loading-mark h-3.5 w-3.5" aria-hidden="true">
                         <span className="loading-mark-ring" />
                       </span>
-                      <span>Entrando…</span>
+                      <span>{t('entering')}</span>
                     </>
                   ) : (
-                    'Entrar'
+                    t('enter')
                   )}
                 </button>
               )}
@@ -115,7 +123,7 @@ export function Layout() {
                 type="button"
                 className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-ink/20 md:hidden dark:border-cream/20"
                 aria-expanded={menuOpen}
-                aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
                 onClick={() => setMenuOpen((open) => !open)}
               >
                 {menuOpen ? <Icon name="x" className="h-5 w-5" /> : <Icon name="list" className="h-5 w-5" />}
@@ -124,18 +132,34 @@ export function Layout() {
           </div>
           {menuOpen ? (
             <nav className="flex flex-col gap-1 px-4 pb-4 md:hidden">
-              <Link to="/explorar" onClick={() => setMenuOpen(false)} className="flex h-11 items-center text-sm font-semibold uppercase tracking-wide">Explorar</Link>
-              <Link to="/como-funciona" onClick={() => setMenuOpen(false)} className="flex h-11 items-center text-sm font-semibold uppercase tracking-wide">Cómo funciona</Link>
+              <Link
+                to="/explorar"
+                onClick={() => setMenuOpen(false)}
+                className="flex h-11 items-center text-sm font-semibold uppercase tracking-wide"
+              >
+                {t('navExplore')}
+              </Link>
+              <Link
+                to="/como-funciona"
+                onClick={() => setMenuOpen(false)}
+                className="flex h-11 items-center text-sm font-semibold uppercase tracking-wide"
+              >
+                {t('navHowItWorks')}
+              </Link>
             </nav>
           ) : null}
         </header>
         <main className="min-w-0 flex-1 px-4 pb-10 md:px-8 md:pb-16 xl:px-12">
-          <Outlet />
+          {needsWalletNow && !WalletStack ? (
+            <LoadingState label={t('loadingPool')} />
+          ) : (
+            <Outlet />
+          )}
         </main>
         {walletRequested && !WalletStack ? (
           <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 lg:items-center">
             <div className="mb-8 w-full max-w-xs rounded-2xl border border-[var(--line)] bg-[var(--panel)] px-6 py-2 shadow-lg lg:mb-0">
-              <LoadingState label="Cargando tu entrada…" size="sm" />
+              <LoadingState label={t('loadingEntry')} size="sm" />
             </div>
           </div>
         ) : null}
@@ -155,6 +179,41 @@ export function Layout() {
         </EntrySheetProvider>
       </Suspense>
     </WalletStack>
+  );
+}
+
+function LanguageToggle() {
+  const { locale, setLocale, t } = useLocale();
+  function pick(next: Locale) {
+    setLocale(next);
+  }
+  return (
+    <div
+      role="group"
+      aria-label={t('language')}
+      className="inline-flex h-11 items-center rounded-xl border border-ink/20 p-0.5 text-xs font-bold dark:border-cream/20"
+    >
+      <button
+        type="button"
+        aria-pressed={locale === 'en'}
+        onClick={() => pick('en')}
+        className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 ${
+          locale === 'en' ? 'bg-ink text-cream dark:bg-cream dark:text-ink' : 'text-ink/70 dark:text-cream/70'
+        }`}
+      >
+        {t('langEn')}
+      </button>
+      <button
+        type="button"
+        aria-pressed={locale === 'es'}
+        onClick={() => pick('es')}
+        className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 ${
+          locale === 'es' ? 'bg-ink text-cream dark:bg-cream dark:text-ink' : 'text-ink/70 dark:text-cream/70'
+        }`}
+      >
+        {t('langEs')}
+      </button>
+    </div>
   );
 }
 
@@ -186,12 +245,13 @@ function MoonIcon() {
 }
 
 function ThemeButton() {
+  const { t } = useLocale();
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
   return (
     <button
       type="button"
       aria-pressed={dark}
-      aria-label={dark ? 'Usar tema claro' : 'Usar tema oscuro'}
+      aria-label={dark ? t('useLightTheme') : t('useDarkTheme')}
       onClick={() => {
         const next = !document.documentElement.classList.contains('dark');
         document.documentElement.classList.toggle('dark', next);

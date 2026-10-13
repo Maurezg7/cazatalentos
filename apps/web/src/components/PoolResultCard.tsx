@@ -1,4 +1,5 @@
 import { formatMON, padRank } from '../lib/format';
+import { useT } from '../i18n/LocaleContext';
 
 type PoolResultCardProps = {
   status: number;
@@ -35,6 +36,7 @@ export function PoolResultCard({
   reclaimLoading,
   preview = false,
 }: PoolResultCardProps) {
+  const t = useT();
   const totalVotes = pool.votesFor + pool.votesAgainst;
   const favorPct =
     totalVotes === 0n ? 0 : Number((pool.votesFor * 100n) / totalVotes);
@@ -51,7 +53,7 @@ export function PoolResultCard({
       <section className="relative flex flex-col gap-4 overflow-hidden rounded-xl bg-[#222E20] p-4 shadow-lg">
         <div className="flex items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1b251a] px-2.5 py-0.5 font-mono text-[0.6875rem] font-semibold uppercase text-secondary">
-            Consenso ratificado
+            {t('consensusRatified')}
           </span>
           <span className="font-mono text-[0.6875rem] text-secondary/80">
             {favorPct}% favorable
@@ -59,9 +61,9 @@ export function PoolResultCard({
         </div>
 
         <div className="flex flex-col gap-1">
-          <h2 className="font-serif text-xl text-on-surface">¡Hito aprobado por la comunidad!</h2>
+          <h2 className="font-serif text-xl text-on-surface">{t('milestoneApproved')}</h2>
           <p className="text-sm text-[#dcded1]">
-            Los {pool.supportersAtOpen} pioneros pueden reclamar su parte del pozo.
+            {t('pioneersCanClaim', { n: pool.supportersAtOpen })}
           </p>
         </div>
 
@@ -69,12 +71,12 @@ export function PoolResultCard({
           <div className="flex items-center justify-between rounded-lg bg-[#172016] p-2">
             <div className="flex flex-col">
               <span className="font-mono text-[0.6875rem] text-comment">
-                Tu parte ({padRank(userRank)})
+                {t('yourShare', { rank: padRank(userRank) })}
               </span>
               <span className="font-mono text-sm text-gold">{formatMON(share)} MON</span>
             </div>
             <span className="rounded bg-[#243321] px-2 py-0.5 font-mono text-[0.6875rem] uppercase text-secondary">
-              {hasClaimed ? 'Cobrada' : 'Lista'}
+              {hasClaimed ? t('claimed') : t('ready')}
             </span>
           </div>
         ) : null}
@@ -91,17 +93,17 @@ export function PoolResultCard({
               disabled={claimLoading}
               className="flex w-full items-center justify-center rounded-lg bg-secondary px-4 py-3.5 text-sm font-bold text-surface-container-lowest transition-transform active:scale-[0.99] disabled:opacity-50"
             >
-              {claimLoading ? 'Reclamando…' : 'Reclamar mi recompensa'}
+              {claimLoading ? t('claiming') : t('claimReward')}
             </button>
           ) : null}
           {!preview && isEligibleSupporter && hasClaimed ? (
             <p className="text-center font-mono text-[0.6875rem] text-secondary">
-              Ya reclamaste tu parte ✓
+              {t('alreadyClaimed')}
             </p>
           ) : null}
           {!preview && !isEligibleSupporter ? (
             <p className="text-center font-mono text-[0.6875rem] text-comment">
-              Solo los pioneros elegibles pueden reclamar.
+              {t('onlyEligible')}
             </p>
           ) : null}
         </div>
@@ -148,11 +150,11 @@ export function PoolResultCard({
               disabled={reclaimLoading}
               className="flex w-full items-center justify-center rounded-lg bg-pink px-4 py-3.5 text-sm font-bold text-surface-container-lowest transition-transform active:scale-[0.99] disabled:opacity-50"
             >
-              {reclaimLoading ? 'Recuperando…' : 'Recuperar el pozo'}
+              {reclaimLoading ? t('reclaiming') : t('reclaimPool')}
             </button>
           ) : (
             <p className="text-center font-mono text-[0.6875rem] text-comment">
-              Solo el artista puede recuperar el pozo.
+              {t('onlyArtistReclaim')}
             </p>
           )}
         </div>
@@ -163,8 +165,8 @@ export function PoolResultCard({
   if (status === 4) {
     return (
       <section className="flex flex-col gap-2 rounded-xl bg-surface-container p-4">
-        <h2 className="font-serif text-xl italic text-on-surface">Pozo recuperado por el artista</h2>
-        <p className="text-sm text-on-surface-variant">Este pozo ya está cerrado.</p>
+        <h2 className="font-serif text-xl italic text-on-surface">{t('poolRecovered')}</h2>
+        <p className="text-sm text-on-surface-variant">{t('poolAlreadyClosed')}</p>
       </section>
     );
   }

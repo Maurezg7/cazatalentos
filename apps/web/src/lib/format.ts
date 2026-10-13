@@ -1,4 +1,10 @@
 import { formatEther } from 'viem';
+import { translate } from '../i18n/messages';
+import { getLocale } from '../i18n/runtime';
+
+function dateLocale(): string {
+  return getLocale() === 'es' ? 'es-AR' : 'en-US';
+}
 
 export function shortAddress(addr: string): string {
   if (addr.length < 10) return addr;
@@ -12,7 +18,7 @@ export function shortHash(hash: string): string {
 
 export function padRank(rank: number, total?: number): string {
   const padded = rank.toString().padStart(3, '0');
-  return total !== undefined ? `Nº ${padded} de ${total}` : `Nº ${padded}`;
+  return total !== undefined ? `Nº ${padded} / ${total}` : `Nº ${padded}`;
 }
 
 export function formatMON(wei: bigint): string {
@@ -25,7 +31,7 @@ export function formatMON(wei: bigint): string {
 
 export function formatSignedAt(unixSeconds: bigint): string {
   const date = new Date(Number(unixSeconds) * 1000);
-  return date.toLocaleDateString('es-AR', {
+  return date.toLocaleDateString(dateLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -34,7 +40,7 @@ export function formatSignedAt(unixSeconds: bigint): string {
 
 export function formatDeadline(unixSeconds: bigint): string {
   const date = new Date(Number(unixSeconds) * 1000);
-  return date.toLocaleDateString('es-AR', {
+  return date.toLocaleDateString(dateLocale(), {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -49,13 +55,16 @@ export function daysUntil(unixSeconds: bigint): number {
 }
 
 export function poolStatusLabel(status: number): string {
-  return ['Abierto', 'Hito declarado', 'Aprobado', 'Rechazado', 'Reclamado'][status] ?? 'Desconocido';
+  const locale = getLocale();
+  const keys = ['statusOpen', 'statusClaimed', 'statusApproved', 'statusRejected', 'statusReclaimed'] as const;
+  const key = keys[status];
+  return key ? translate(locale, key) : translate(locale, 'statusUnknown');
 }
 
 export function formatCountdown(targetUnixSeconds: bigint, nowUnixSeconds?: bigint): string {
   const now = nowUnixSeconds !== undefined ? Number(nowUnixSeconds) : Math.floor(Date.now() / 1000);
   const remaining = Number(targetUnixSeconds) - now;
-  if (remaining <= 0) return 'Cerrada';
+  if (remaining <= 0) return translate(getLocale(), 'closed');
   const hours = Math.floor(remaining / 3600);
   const minutes = Math.max(0, Math.floor((remaining % 3600) / 60));
   if (hours < 1) return `${minutes}m`;
@@ -71,8 +80,9 @@ export function poolStatusColor(status: number): string {
 }
 
 export function levelName(weight: number): string {
-  if (weight >= 5) return 'Fundador';
-  if (weight >= 3) return 'Pionero';
-  if (weight >= 2) return 'Temprano';
-  return 'Fiel';
+  const locale = getLocale();
+  if (weight >= 5) return locale === 'es' ? 'Fundador' : 'Founder';
+  if (weight >= 3) return locale === 'es' ? 'Pionero' : 'Pioneer';
+  if (weight >= 2) return locale === 'es' ? 'Temprano' : 'Early';
+  return locale === 'es' ? 'Fiel' : 'Loyal';
 }

@@ -9,11 +9,13 @@ import { useEntrySheet } from './EntrySheet';
 import { useEntrySignal } from '../lib/entry-signal';
 import { shortAddress } from '../lib/format';
 import { useSupporter } from '../lib/hooks';
+import { useT } from '../i18n/LocaleContext';
 
 const enterPill =
   'inline-flex h-11 min-w-[44px] items-center justify-center gap-2 rounded-xl bg-terracotta px-4 font-body text-sm font-bold text-cream transition-colors disabled:opacity-70 dark:bg-terracotta-dark';
 
 export function ConnectButton() {
+  const t = useT();
   const { ready, authenticated, logout } = usePrivy();
   const { openEntry } = useEntrySheet();
   const { loggingIn } = useEntrySignal();
@@ -54,7 +56,7 @@ export function ConnectButton() {
         <span className="loading-mark h-3.5 w-3.5" aria-hidden="true">
           <span className="loading-mark-ring" />
         </span>
-        <span>{authenticated ? 'Cargando…' : 'Entrando…'}</span>
+        <span>{authenticated ? t('loading') : t('entering')}</span>
       </button>
     );
   }
@@ -62,7 +64,7 @@ export function ConnectButton() {
   if (!authenticated || !address) {
     return (
       <button type="button" onClick={() => openEntry()} className={enterPill}>
-        Entrar
+        {t('enter')}
       </button>
     );
   }
@@ -88,7 +90,7 @@ export function ConnectButton() {
         className="flex h-11 max-w-[5.75rem] items-center gap-1 rounded-xl bg-surface-container-high px-2 shadow-md transition-transform active:scale-95 sm:max-w-none sm:gap-1.5 sm:rounded-full sm:px-3"
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`Cuenta ${shortAddress(address)}`}
+        aria-label={t('accountAria', { addr: shortAddress(address) })}
       >
         <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
         <span className="truncate font-mono text-[0.625rem] text-primary sm:text-[0.6875rem]">
@@ -111,14 +113,14 @@ export function ConnectButton() {
             }}
             className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-xs text-on-surface transition-colors hover:bg-surface-container"
           >
-            <span>Copiar dirección</span>
+            <span>{t('copyAddress')}</span>
             <span className="font-mono text-[10px] text-outline">{tail}</span>
           </button>
 
           {copied ? (
             <div className="mx-1 my-1 flex items-center gap-1.5 rounded-full bg-secondary/15 px-2.5 py-1">
               <span className="font-mono text-[11px] font-medium tracking-tight text-secondary">
-                Dirección copiada
+                {t('addressCopied')}
               </span>
             </div>
           ) : null}
@@ -130,7 +132,7 @@ export function ConnectButton() {
               onClick={() => setOpen(false)}
               className="flex items-center rounded-lg px-2 py-2 text-xs text-on-surface hover:bg-surface-container"
             >
-              Mi perfil de artista
+              {t('myArtistProfile')}
             </Link>
           ) : (
             <Link
@@ -139,7 +141,7 @@ export function ConnectButton() {
               onClick={() => setOpen(false)}
               className="flex items-center rounded-lg px-2 py-2 text-xs text-on-surface hover:bg-surface-container"
             >
-              Crear mi perfil de artista
+              {t('createArtistProfile')}
             </Link>
           )}
 
@@ -152,7 +154,7 @@ export function ConnectButton() {
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-between rounded px-2 py-1.5 font-mono text-[11px] text-tertiary transition-colors hover:bg-surface-container"
               >
-                <span>Mi registro de pionero</span>
+                <span>{t('myPioneerRecord')}</span>
                 <span className="text-[10px] text-outline">
                   #{pioneer.rank.toString().padStart(4, '0')}
                 </span>
@@ -170,7 +172,7 @@ export function ConnectButton() {
             }}
             className="w-full rounded-lg px-2 py-2 text-left text-xs text-vino-700 transition-colors hover:bg-surface-container"
           >
-            Salir de la cuenta
+            {t('signOut')}
           </button>
         </div>
       ) : null}

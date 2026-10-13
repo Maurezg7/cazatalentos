@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useT } from '../i18n/LocaleContext';
 import { nameFontClass, readableInk } from '../lib/name-style';
 import { flagEmoji } from '../lib/places';
 import { CoverEditButton, PhotoEditBadge } from './ArtistMediaEdit';
@@ -49,11 +50,12 @@ export function ArtistHeader({
   linkEntries = [],
   mediaEdit,
 }: ArtistHeaderProps) {
+  const t = useT();
   const acta = artistId.toString().padStart(3, '0');
   const initial = name.trim().slice(0, 1).toUpperCase() || 'A';
   const pioneers =
-    supporterCount === 1 ? '1 pionero' : `${supporterCount} pioneros`;
-  const poolsLabel = poolCount === 1 ? '1 pozo' : `${poolCount} pozos`;
+    supporterCount === 1 ? t('pioneerOne') : t('pioneerMany', { n: supporterCount });
+  const poolsValue = poolCount === 1 ? t('poolOne') : t('poolMany', { n: poolCount });
   const canEdit = Boolean(isOwner && ownerAddress && mediaEdit);
 
   return (
@@ -100,12 +102,12 @@ export function ArtistHeader({
         </div>
         <dl className="flex gap-8">
           <div>
-            <dt className="font-mono text-[0.625rem] uppercase tracking-wider text-[#869272]">Pioneros</dt>
+            <dt className="font-mono text-[0.625rem] uppercase tracking-wider text-[#869272]">{t('pioneersLabel')}</dt>
             <dd className="font-serif text-xl italic text-[#f5f7ee]">{pioneers}</dd>
           </div>
           <div>
-            <dt className="font-mono text-[0.625rem] uppercase tracking-wider text-[#869272]">Pozos</dt>
-            <dd className="font-serif text-xl italic" style={{ color: accent ?? '#c6a15a' }}>{poolsLabel}</dd>
+            <dt className="font-mono text-[0.625rem] uppercase tracking-wider text-[#869272]">{t('poolsLabel')}</dt>
+            <dd className="font-serif text-xl italic" style={{ color: accent ?? '#c6a15a' }}>{poolsValue}</dd>
           </div>
         </dl>
 

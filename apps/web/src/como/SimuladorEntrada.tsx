@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SIMULADOR_CONFIG, SIMULADOR_HABILITADO } from '../content/como-funciona';
+import { useT } from '../i18n/LocaleContext';
 import { formatMonFromWei } from '../landing/pozo';
 import { simularEntrada } from './simular';
 
@@ -13,6 +14,7 @@ function parseWei(text: string): bigint | null {
 }
 
 export function SimuladorEntrada() {
+  const t = useT();
   const [deposito, setDeposito] = useState(String(SIMULADOR_CONFIG.depositoMinWei));
   const [entrada, setEntrada] = useState('41');
   const [seCumple, setSeCumple] = useState(true);
@@ -23,7 +25,7 @@ export function SimuladorEntrada() {
   if (!SIMULADOR_HABILITADO) {
     return (
       <p className="m-0 rounded-[var(--radius-card)] border border-[var(--line)] bg-[var(--panel)] p-4 text-sm">
-        El simulador está apagado. El mínimo, el quórum y la mayoría están en el contrato; esta página no inventa un reparto de ejemplo.
+        {t('simOff')}
       </p>
     );
   }
@@ -32,7 +34,7 @@ export function SimuladorEntrada() {
     const depositoWei = parseWei(deposito);
     const numero = Number(entrada);
     if (depositoWei === null) {
-      setErrorDeposito('Escribí el depósito en wei, solo dígitos.');
+      setErrorDeposito(t('simDepositDigits'));
       setResultado('');
       return;
     }
@@ -57,7 +59,14 @@ export function SimuladorEntrada() {
     setErrorEntrada('');
     const elegido = seCumple ? si : no;
     setResultado(
-      `Con la entrada ${numero} tu peso es ${elegido.peso}. Si se cumple, recibirías ${formatMonFromWei(si.partePozoWei)} del pozo de ejemplo. Si no se cumple, recibirías ${formatMonFromWei(no.partePozoWei)} del pozo. Aportás ${formatMonFromWei(elegido.comisionWei)} en comisiones de ejemplo. Tu depósito, ${formatMonFromWei(elegido.depositoWei)}, queda aparte.`,
+      t('simResultText', {
+        n: numero,
+        weight: elegido.peso,
+        yes: formatMonFromWei(si.partePozoWei),
+        no: formatMonFromWei(no.partePozoWei),
+        fee: formatMonFromWei(elegido.comisionWei),
+        deposit: formatMonFromWei(elegido.depositoWei),
+      }),
     );
   }
 
@@ -69,24 +78,43 @@ export function SimuladorEntrada() {
         calcular();
       }}
     >
-      <p className="m-0 text-sm font-semibold">Reglas en validación. Simulación ilustrativa con reglas de ejemplo. Los valores reales los define el contrato de cada pozo.</p>
+      <p className="m-0 text-sm font-semibold">{t('simRulesNote')}</p>
       <label className="flex flex-col gap-1 text-sm">
-        Depósito en wei
-        <input className="landing-focus h-11 rounded border border-[var(--line)] bg-[var(--paper)] px-3 text-[var(--ink)]" value={deposito} onChange={(event) => setDeposito(event.target.value)} inputMode="numeric" />
+        {t('simDepositWei')}
+        <input
+          className="landing-focus h-11 rounded border border-[var(--line)] bg-[var(--paper)] px-3 text-[var(--ink)]"
+          value={deposito}
+          onChange={(event) => setDeposito(event.target.value)}
+          inputMode="numeric"
+        />
         {errorDeposito ? <span role="alert">{errorDeposito}</span> : null}
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Número de entrada
-        <input className="landing-focus h-11 rounded border border-[var(--line)] bg-[var(--paper)] px-3 text-[var(--ink)]" value={entrada} onChange={(event) => setEntrada(event.target.value)} inputMode="numeric" />
+        {t('simEntryNumber')}
+        <input
+          className="landing-focus h-11 rounded border border-[var(--line)] bg-[var(--paper)] px-3 text-[var(--ink)]"
+          value={entrada}
+          onChange={(event) => setEntrada(event.target.value)}
+          inputMode="numeric"
+        />
         {errorEntrada ? <span role="alert">{errorEntrada}</span> : null}
       </label>
       <fieldset className="m-0 flex gap-4 border-0 p-0">
-        <legend className="text-sm">Resultado</legend>
-        <label className="text-sm"><input type="radio" name="resultado" checked={seCumple} onChange={() => setSeCumple(true)} /> Se cumple</label>
-        <label className="text-sm"><input type="radio" name="resultado" checked={!seCumple} onChange={() => setSeCumple(false)} /> No se cumple</label>
+        <legend className="text-sm">{t('simResult')}</legend>
+        <label className="text-sm">
+          <input type="radio" name="resultado" checked={seCumple} onChange={() => setSeCumple(true)} /> {t('simMet')}
+        </label>
+        <label className="text-sm">
+          <input type="radio" name="resultado" checked={!seCumple} onChange={() => setSeCumple(false)} />{' '}
+          {t('simMissed')}
+        </label>
       </fieldset>
-      <button type="submit" className="sun-btn landing-focus h-11 px-4">Calcular</button>
-      <p aria-live="polite" className="m-0 min-h-6">{resultado}</p>
+      <button type="submit" className="sun-btn landing-focus h-11 px-4">
+        {t('simCalculate')}
+      </button>
+      <p aria-live="polite" className="m-0 min-h-6">
+        {resultado}
+      </p>
     </form>
   );
 }

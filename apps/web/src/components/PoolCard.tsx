@@ -1,4 +1,5 @@
 import type { PoolDto } from '../lib/api';
+import { useT } from '../i18n/LocaleContext';
 import { Icon } from './Icon';
 import { formatDeadline, formatMON, poolStatusLabel, shortHash } from '../lib/format';
 
@@ -26,11 +27,14 @@ type PoolCardProps = {
 };
 
 export function PoolCard({ pool, onClick }: PoolCardProps) {
+  const t = useT();
   const pending = pool.amountWei === '0' && pool.milestoneHash === ZERO_HASH;
   const description = pool.milestoneDescription ?? shortHash(pool.milestoneHash);
   const deadline = pending
-    ? 'Fecha por confirmar'
-    : `Cierre: ${formatDeadline(BigInt(Math.floor(new Date(pool.deadline).getTime() / 1000)))}`;
+    ? t('datePending')
+    : t('closesAt', {
+        date: formatDeadline(BigInt(Math.floor(new Date(pool.deadline).getTime() / 1000))),
+      });
   const idLabel = String(pool.id).padStart(3, '0');
 
   return (
@@ -46,7 +50,7 @@ export function PoolCard({ pool, onClick }: PoolCardProps) {
             <span className="h-1.5 w-1.5 rounded-full bg-current" />
             {poolStatusLabel(STATUS_INDEX[pool.status])}
           </span>
-          <span className="font-mono text-[11px] text-[#919e7e]">Pozo #{idLabel}</span>
+          <span className="font-mono text-[11px] text-[#919e7e]">{t('poolNumber', { id: idLabel })}</span>
         </div>
         <span className="rounded border border-[#52491f] bg-[#2a2614] px-2 py-0.5 font-mono text-[0.6875rem] font-semibold text-primary-fixed">
           {deadline}
@@ -57,17 +61,19 @@ export function PoolCard({ pool, onClick }: PoolCardProps) {
         <p className="font-serif text-xl italic text-[#f4f7ee]">{description}</p>
         <div className="text-left md:text-right">
           <span className="block font-mono text-2xl font-bold tracking-tight text-secondary md:text-3xl">
-            {pending ? 'Confirmando…' : `${formatMON(BigInt(pool.amountWei))} MON`}
+            {pending ? t('confirmingPool') : `${formatMON(BigInt(pool.amountWei))} MON`}
           </span>
           <span className="font-mono text-[10px] uppercase tracking-wider text-[#869273]">
-            En el pozo
+            {t('inThePool')}
           </span>
         </div>
       </div>
 
       <div className="mt-1 flex items-center justify-between border-t border-[#2d371f] pt-3">
-        <span className="font-mono text-[0.6875rem] text-[#919e7e]">Abrí el expediente</span>
-        <span className="inline-flex items-center gap-1 font-mono text-[0.6875rem] text-secondary">Ver pozo <Icon name="arrow-right" className="h-3 w-3" /></span>
+        <span className="font-mono text-[0.6875rem] text-[#919e7e]">{t('openDossier')}</span>
+        <span className="inline-flex items-center gap-1 font-mono text-[0.6875rem] text-secondary">
+          {t('viewPool')} <Icon name="arrow-right" className="h-3 w-3" />
+        </span>
       </div>
     </article>
   );

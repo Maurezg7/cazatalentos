@@ -13,6 +13,7 @@ import { signedWrite } from '../lib/write-auth';
 import { contrastRatio, NAME_FONTS, nameFontClass, type NameFont } from '../lib/name-style';
 import { readArtistImage } from '../lib/artist-image';
 import { BIO_PALETTE, OPEN_REEL_EDITOR_EVENT } from './ArtistReels';
+import { useT } from '../i18n/LocaleContext';
 import { Icon, type IconName } from './Icon';
 import { SOCIAL_FIELDS, stableLinksJson } from './ArtistSocialLinks';
 
@@ -51,6 +52,7 @@ export function ArtistStudio({
   links,
   onProfileSaved,
 }: ArtistStudioProps) {
+  const t = useT();
   const posts = useQuery({
     queryKey: ['artist-posts', artistId],
     queryFn: () => fetchArtistPosts(artistId),
@@ -58,7 +60,7 @@ export function ArtistStudio({
 
   return (
     <section id="editar-perfil" className="flex scroll-mt-24 flex-col gap-4">
-      <h2 className="font-serif text-2xl font-semibold italic text-[#f5f7ee]">Novedades</h2>
+      <h2 className="font-serif text-2xl font-semibold italic text-[#f5f7ee]">{t('news')}</h2>
 
       {isOwner && ownerAddress ? (
         <>

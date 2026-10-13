@@ -26,11 +26,11 @@ function artista(partial: Partial<ArtistaExplorar> = {}): ArtistaExplorar {
 
 describe('chipPozo', () => {
   it('covers missing, open, closing and closed pools', () => {
-    expect(chipPozo(artista({ pozo: null }))).toBe('Sin pozo');
-    expect(chipPozo(artista())).toBe('Hay cupo');
-    expect(chipPozo(artista({ pioneros: 18 }))).toBe('Últimos cupos');
-    expect(chipPozo(artista({ pozo: { ...artista().pozo!, cierraEn: new Date(Date.now() + 60_000).toISOString() } }))).toBe('Cierra pronto');
-    expect(chipPozo(artista({ pozo: { ...artista().pozo!, abierto: false } }))).toBe('Cerrado');
+    expect(chipPozo(artista({ pozo: null }))).toBe('no_pool');
+    expect(chipPozo(artista())).toBe('has_slots');
+    expect(chipPozo(artista({ pioneros: 18 }))).toBe('last_slots');
+    expect(chipPozo(artista({ pozo: { ...artista().pozo!, cierraEn: new Date(Date.now() + 60_000).toISOString() } }))).toBe('closing_soon');
+    expect(chipPozo(artista({ pozo: { ...artista().pozo!, abierto: false } }))).toBe('closed');
   });
 
   it('caps progress and allows entry only while the pool is open', () => {

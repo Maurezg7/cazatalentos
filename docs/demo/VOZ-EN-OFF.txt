@@ -1,0 +1,26 @@
+# Full English demo · docs/demo/cazatalentos-demo.mp4 · silent · dark mode · EN UI
+# Paste into ElevenLabs / any English voice AI · ~2:18 video
+
+[00:00-00:25] HOME / OPEN POOLS
+Cazatalentos is the registry of who believed first. Open pools show how much each artist raised and how long they still accept marks.
+
+[00:25-00:50] FAN — LEAVE A MARK
+As a fan you open an artist profile and leave your mark. The minimum deposit is 0.001 MON — it stays in the contract and gives you a pioneer number.
+
+[00:50-01:10] FAN — APPROVED POOL
+If the milestone is approved, pioneers can claim their share of the pool. Consensus stays settled on-chain.
+
+[01:10-01:25] ARTIST — CLOSED POOL
+If the milestone is not met, the artist can reclaim the pool. That outcome is recorded too.
+
+[01:25-01:45] ARTIST — OPEN POOL
+Here is a freshly opened on-chain pool: amount in MON, closing date, and pioneers already counted.
+
+[01:45-02:00] EXPLORE / HOW IT WORKS
+Explore artists by city and pool status. The flow is simple: discover, leave a mark, get your entry, and vote the milestone.
+
+[02:00-end] PROFILE + LANGUAGE
+Artists upload their own photo, cover and reels. The app runs in English by default and switches to Spanish anytime. You believed first — it stayed on-chain.
+
+--- SINGLE TAKE ---
+Cazatalentos is the registry of who believed first. As a fan you leave a mark with a small deposit and get a pioneer number. If the milestone is approved, you claim your share of the pool. As an artist you open an on-chain pool with a goal and a deadline — if it fails, you can reclaim it. Explore artists from the NOA, switch the app between English and Spanish, and keep every mark on Monad. You believed first — it stayed on-chain.

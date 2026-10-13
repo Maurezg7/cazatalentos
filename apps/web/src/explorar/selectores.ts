@@ -1,16 +1,29 @@
 import { freeSlots, goalPercent } from '../landing/pozo';
+import type { MessageKey } from '../i18n/messages';
 import type { ArtistaExplorar, EstadoFiltro } from './tipos';
 
-export type ChipPozo = 'Hay cupo' | 'Últimos cupos' | 'Cierra pronto' | 'Cerrado' | 'Sin pozo';
+export type ChipPozo = 'has_slots' | 'last_slots' | 'closing_soon' | 'closed' | 'no_pool';
+
+const CHIP_MESSAGE: Record<ChipPozo, MessageKey> = {
+  has_slots: 'chipHasSlots',
+  last_slots: 'chipLastSlots',
+  closing_soon: 'chipClosingSoon',
+  closed: 'chipClosed',
+  no_pool: 'chipNoPool',
+};
 
 export function chipPozo(artista: ArtistaExplorar, now = Date.now()): ChipPozo {
   const pozo = artista.pozo;
-  if (!pozo || !pozo.abierto) return pozo ? 'Cerrado' : 'Sin pozo';
+  if (!pozo || !pozo.abierto) return pozo ? 'closed' : 'no_pool';
   const closes = Date.parse(pozo.cierraEn);
-  if (Number.isFinite(closes) && closes - now < 3 * 24 * 60 * 60 * 1000 && closes > now) return 'Cierra pronto';
+  if (Number.isFinite(closes) && closes - now < 3 * 24 * 60 * 60 * 1000 && closes > now) return 'closing_soon';
   const libres = freeSlots(artista.pioneros, pozo.cupoMaximo);
-  if (pozo.cupoMaximo !== null && libres > 0 && libres <= 3) return 'Últimos cupos';
-  return 'Hay cupo';
+  if (pozo.cupoMaximo !== null && libres > 0 && libres <= 3) return 'last_slots';
+  return 'has_slots';
+}
+
+export function chipPozoKey(chip: ChipPozo): MessageKey {
+  return CHIP_MESSAGE[chip];
 }
 
 export function avancePozo(artista: ArtistaExplorar): number {
@@ -21,7 +34,8 @@ export function avancePozo(artista: ArtistaExplorar): number {
 }
 
 export function admiteEntrada(artista: ArtistaExplorar): boolean {
-  return chipPozo(artista) === 'Hay cupo' || chipPozo(artista) === 'Últimos cupos' || chipPozo(artista) === 'Cierra pronto';
+  const chip = chipPozo(artista);
+  return chip === 'has_slots' || chip === 'last_slots' || chip === 'closing_soon';
 }
 
 export function colocarPatrocinados<T extends { patrocinado: boolean }>(items: T[]): T[] {

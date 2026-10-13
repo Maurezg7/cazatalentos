@@ -1,3 +1,5 @@
+import { localizeArtistName } from '../i18n/artists';
+import { useLocale, useT } from '../i18n/LocaleContext';
 import type { Supporter } from '../lib/contracts';
 import { formatMON, formatSignedAt, levelName, padRank } from '../lib/format';
 
@@ -14,14 +16,17 @@ export function BeliefCard({
   supporter,
   totalSupporters,
 }: BeliefCardProps) {
+  const t = useT();
+  const { locale } = useLocale();
   const year = new Date(Number(supporter.signedAt) * 1000).getFullYear();
+  const name = localizeArtistName(artistName, locale);
 
   return (
     <section className="space-y-1" data-artist-id={artistId.toString()}>
       <div className="mb-1 flex items-center justify-between">
-        <span className="font-mono text-[0.6875rem] uppercase text-outline">Primer testimonio de fe</span>
+        <span className="font-mono text-[0.6875rem] uppercase text-outline">{t('beliefFirstTestimonial')}</span>
         <span className="font-mono text-[0.6875rem] text-on-surface-variant">
-          {year} · {totalSupporters.toString().padStart(3, '0')} pioneros
+          {year} · {t('beliefPioneers', { n: totalSupporters.toString().padStart(3, '0') })}
         </span>
       </div>
 
@@ -31,37 +36,33 @@ export function BeliefCard({
             <span className="rounded bg-primary-container px-2 py-0.5 font-mono text-[0.6875rem] uppercase text-on-primary-container">
               Cazatalentos
             </span>
-            <span className="font-mono text-[0.6875rem] text-on-surface-variant">Creyente temprano</span>
+            <span className="font-mono text-[0.6875rem] text-on-surface-variant">{t('beliefEarlyBeliever')}</span>
           </div>
           <span className="rounded bg-surface-container-highest px-2 py-0.5 font-mono text-[0.6875rem] text-secondary">
             {levelName(supporter.weight)} ×{supporter.weight}
           </span>
         </div>
 
-        <Stamp year={year} />
+        <Stamp year={year} label={t('beliefStamp')} />
 
         <div className="relative z-10 py-4">
-          <span className="block font-mono text-[0.6875rem] uppercase text-outline">Orden de llegada</span>
+          <span className="block font-mono text-[0.6875rem] uppercase text-outline">{t('beliefArrivalOrder')}</span>
           <div className="mt-1 font-mono text-[2rem] leading-none text-primary">{padRank(supporter.rank)}</div>
-          <p className="mt-2 font-serif text-xl italic text-on-surface">
-            Constancia otorgada a favor de {artistName}
-          </p>
+          <p className="mt-2 font-serif text-xl italic text-on-surface">{t('beliefGranted', { artist: name })}</p>
         </div>
 
         <div className="flex items-center justify-between rounded bg-surface-container-low px-2 py-2">
           <span className="font-mono text-[0.6875rem] text-on-surface-variant">
             {formatSignedAt(supporter.signedAt)}
           </span>
-          <span className="font-mono text-[0.6875rem] text-secondary">
-            {formatMON(supporter.stake)} MON
-          </span>
+          <span className="font-mono text-[0.6875rem] text-secondary">{formatMON(supporter.stake)} MON</span>
         </div>
       </article>
     </section>
   );
 }
 
-function Stamp({ year }: { year: number }) {
+function Stamp({ year, label }: { year: number; label: string }) {
   return (
     <div className="pointer-events-none absolute right-3 top-8 opacity-20">
       <svg className="rotate-[-12deg] text-primary" fill="currentColor" height="110" viewBox="0 0 120 120" width="110">
@@ -95,7 +96,7 @@ function Stamp({ year }: { year: number }) {
           x="60"
           y="84"
         >
-          Dar fe
+          {label}
         </text>
       </svg>
     </div>

@@ -1,10 +1,16 @@
+import { useT } from '../i18n/LocaleContext';
+
 const STORAGE_KEY = 'cazatalentos:simulatedTimeOffset';
 const OFFSET_SECONDS = '172800';
 export const TIME_TRAVEL_EVENT = 'cazatalentos:simulated-time';
 
 export function DevTimeTravel() {
   if (!import.meta.env.DEV) return null;
+  return <DevTimeTravelButton />;
+}
 
+function DevTimeTravelButton() {
+  const t = useT();
   const active = readSimulatedOffset() > 0n;
 
   function onClick() {
@@ -26,7 +32,7 @@ export function DevTimeTravel() {
       onClick={onClick}
       className="fixed bottom-4 right-4 z-50 rounded-full bg-violet-600 px-3 py-2 text-xs text-white opacity-70 hover:opacity-100"
     >
-      {active ? '⏪ Tiempo real (dev)' : '⏩ Simular +48h (dev)'}
+      {active ? t('devRealTime') : t('devSimPlus48')}
     </button>
   );
 }

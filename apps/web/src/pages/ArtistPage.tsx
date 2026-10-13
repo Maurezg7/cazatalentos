@@ -22,6 +22,8 @@ import { useEntrySignal } from '../lib/entry-signal';
 import { formatMON, shortAddress } from '../lib/format';
 import { useArtist, useMinStake, useRecentRegisteredArtist, useSignBelief, useSupporter } from '../lib/hooks';
 import { useWalletReady } from '../lib/wallet-ready';
+import { localizeArtistName } from '../i18n/artists';
+import { useLocale, useT } from '../i18n/LocaleContext';
 
 const GAS_BUFFER = parseEther('0.001');
 
@@ -36,6 +38,8 @@ function parseArtistId(raw: string | undefined): bigint | undefined {
 }
 
 export function ArtistPage() {
+  const t = useT();
+  const { locale } = useLocale();
   const { id } = useParams<{ id: string }>();
   const artistId = parseArtistId(id);
   const walletReady = useWalletReady();
@@ -55,8 +59,12 @@ export function ArtistPage() {
   if (artistId === undefined) {
     return (
       <ErrorState
-        title="Ese artista no existe."
-        message="El link tiene que terminar con un número de artista válido."
+        title={locale === 'es' ? 'Ese artista no existe.' : 'That artist does not exist.'}
+        message={
+          locale === 'es'
+            ? 'El link tiene que terminar con un número de artista válido.'
+            : 'The link must end with a valid artist number.'
+        }
       />
     );
   }
@@ -64,14 +72,18 @@ export function ArtistPage() {
   const profile = profileQuery.data ?? null;
 
   if (profileQuery.isLoading && !profile) {
-    return <LoadingState label="Buscando al artista…" />;
+    return <LoadingState label={t('searchingArtist')} />;
   }
 
   if (!profile && profileQuery.isFetched) {
     return (
       <ErrorState
-        title="No encontramos ese artista"
-        message="Puede que el link esté mal o que el perfil no exista todavía."
+        title={locale === 'es' ? 'No encontramos ese artista' : 'We could not find that artist'}
+        message={
+          locale === 'es'
+            ? 'Puede que el link esté mal o que el perfil no exista todavía.'
+            : 'The link may be wrong, or the profile does not exist yet.'
+        }
         onRetry={() => {
           void profileQuery.refetch();
         }}
@@ -80,10 +92,10 @@ export function ArtistPage() {
   }
 
   if (!profile) {
-    return <LoadingState label="Buscando al artista…" />;
+    return <LoadingState label={t('searchingArtist')} />;
   }
 
-  const displayName = profile.displayName || 'Artista';
+  const displayName = localizeArtistName(profile.displayName || t('sampleArtist'), locale);
   const pools = [...(poolsQuery.data ?? [])].sort(
     (left, right) => new Date(right.deadline).getTime() - new Date(left.deadline).getTime(),
   );
@@ -150,6 +162,7 @@ function ArtistPublicBody({
   onEnter: () => void;
   onProfileSaved: () => void;
 }) {
+  const t = useT();
   return (
     <>
       <CoverMedia src={mediaUrl(profile.cover)} name={displayName} wash={profile.bioWash ?? null} />
@@ -192,9 +205,9 @@ function ArtistPublicBody({
         </div>
         <div className="flex flex-col gap-6 lg:col-span-5">
           <div className="flex flex-col gap-2 rounded-2xl border-2 border-[#434e2b] bg-[#21281a] p-4 lg:p-6">
-            <ActionButton label="Entrar para dejar mi marca" onClick={onEnter} />
+            <ActionButton label={t('leaveMarkEnter')} onClick={onEnter} />
             <p className="text-center font-mono text-[0.6875rem] text-[#879373]">
-              Depósito de respaldo + costo de red.
+              {t('leaveMarkDepositFallback')}
             </p>
           </div>
           {poolsLoading ? <LoadingState label="Buscando pozos…" size="sm" /> : null}
@@ -224,6 +237,7 @@ function ArtistWalletBody({
   onProfileSaved: () => void;
   onPoolsChanged: () => void;
 }) {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [poolFormOpen, setPoolFormOpen] = useState(false);
@@ -343,7 +357,7 @@ function ArtistWalletBody({
 
           {!onChain ? (
             <p className="rounded-2xl border border-[#434e2b] bg-[#21281a] p-4 text-sm text-[#a8b393]">
-              Este perfil está en el registro. La marca en el contrato se habilita cuando el artista quede publicado en la red.
+              {t('profileOffchain')}
             </p>
           ) : null}
 
@@ -351,7 +365,7 @@ function ArtistWalletBody({
             <div className="flex flex-col gap-2 rounded-2xl border-2 border-[#434e2b] bg-[#21281a] p-4 lg:p-6">
               {!authenticated ? (
                 <ActionButton
-                  label="Entrar para dejar mi marca"
+                  label={t('leaveMarkEnter')}
                   onClick={() => openEntry()}
                   disabled={!ready}
                 />
@@ -360,11 +374,10 @@ function ArtistWalletBody({
                   {balanceIsTooLow ? (
                     <div className="space-y-2 rounded-xl border border-ocre-400 bg-ocre-500/10 p-4">
                       <p className="text-sm font-medium text-[#f5f7ee]">
-                        Necesitás un poco de MON para dejar tu marca.
+                        {t('needMon')}
                       </p>
                       <p className="text-xs text-[#a8b393]">
-                        Tu dirección: {shortAddress(address ?? '')}. Copiala y pedí MON en el
-                        faucet de Monad.
+                        {t('yourAddress', { addr: shortAddress(address ?? '') })}
                       </p>
                       <a
                         href="https://faucet.monad.xyz"
@@ -372,13 +385,13 @@ function ArtistWalletBody({
                         rel="noreferrer"
                         className="inline-flex min-h-11 items-center text-xs text-tertiary underline"
                       >
-                        Ir al faucet <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
+                        {t('goFaucet')} <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
                       </a>
                     </div>
                   ) : null}
 
                   <ActionButton
-                    label="Dejar mi marca"
+                    label={t('leaveMark')}
                     onClick={() => {
                       reset();
                       void sign(artistId).catch(() => undefined);
@@ -392,8 +405,8 @@ function ArtistWalletBody({
               )}
               <p className="text-center font-mono text-[0.6875rem] text-[#879373]">
                 {minStake !== undefined
-                  ? `Depósito de respaldo: ${formatMON(minStake)} MON + costo de red.`
-                  : 'Depósito de respaldo + costo de red.'}
+                  ? t('leaveMarkDeposit', { amount: formatMON(minStake) })
+                  : t('leaveMarkDepositFallback')}
               </p>
               {signError ? (
                 <p className="text-sm text-vino-700">{signError.userMessage}</p>
@@ -406,7 +419,7 @@ function ArtistWalletBody({
             <section className="rounded-2xl border-[3px] border-[#434e2b] bg-[#21281a] p-4 shadow-xl">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#333e21] pb-3">
                 <h2 className="font-serif text-2xl font-semibold italic text-[#f5f7ee]">
-                  Mis pozos
+                  {t('myPools')}
                 </h2>
                 {supporterCount > 0 ? (
                   <button
@@ -414,7 +427,7 @@ function ArtistWalletBody({
                     onClick={() => setPoolFormOpen(true)}
                     className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[#8ea459] bg-[#5c6b3a] px-3.5 py-2 font-mono text-[0.6875rem] font-bold tracking-wide text-[#12160d] transition-colors hover:bg-[#6c7d44]"
                   >
-                    Abrir un pozo
+                    {t('openAPool')}
                   </button>
                 ) : null}
               </div>
@@ -423,15 +436,14 @@ function ArtistWalletBody({
               {!poolsLoading && pools.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-[#192013] p-6 text-center">
                   <p className="font-serif text-xl italic text-[#f5f7ee]">
-                    Todavía no abriste ningún pozo
+                    {t('noPoolsYet')}
                   </p>
                   <p className="max-w-[280px] text-xs text-[#a8b393]">
-                    Los pozos reúnen depósitos de respaldo para tus próximos discos, giras o
-                    instrumentos.
+                    {t('poolsExplain')}
                   </p>
                   {supporterCount === 0 ? (
                     <p className="text-xs text-[#a8b393]">
-                      Cuando alguien deje su marca, vas a poder abrir un pozo de recompensa.
+                      {t('needSupportersFirst')}
                     </p>
                   ) : null}
                 </div>
@@ -454,7 +466,7 @@ function ArtistWalletBody({
               to={`/artist/${recentMine.data.toString()}`}
               className="flex min-h-11 items-center justify-center gap-1 text-sm text-tertiary hover:underline"
             >
-              Tu perfil ya está creado <Icon name="arrow-right" className="h-3.5 w-3.5" />
+              {t('yourProfileExists')} <Icon name="arrow-right" className="h-3.5 w-3.5" />
             </Link>
           ) : authenticated && !isOwner ? (
             <button
@@ -462,7 +474,7 @@ function ArtistWalletBody({
               onClick={() => setRegisterOpen(true)}
               className="flex min-h-11 w-full items-center justify-center gap-1 text-sm text-tertiary hover:underline"
             >
-              ¿Sos artista? Creá tu perfil <Icon name="arrow-right" className="h-3.5 w-3.5" />
+              {t('createProfile')} <Icon name="arrow-right" className="h-3.5 w-3.5" />
             </button>
           ) : null}
         </div>

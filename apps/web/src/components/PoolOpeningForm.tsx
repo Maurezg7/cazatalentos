@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { keccak256, parseEther, parseEventLogs, toBytes } from 'viem';
 import { usePublicClient } from 'wagmi';
 import { z } from 'zod';
+import { useT } from '../i18n/LocaleContext';
 import { registerPoolMetadata } from '../lib/api';
 import { CAZATALENTOS_ABI } from '../lib/contracts';
 import { formatDeadline } from '../lib/format';
@@ -15,22 +16,13 @@ import { getRequestId } from '../lib/observability/request-id';
 
 const MAX_WINDOW_SECONDS = 90 * 24 * 60 * 60;
 
-const openPoolSchema = z.object({
-  amount: z
-    .string()
-    .trim()
-    .regex(/^\d+(\.\d{1,18})?$/, 'Escribí un monto en MON.')
-    .refine((value) => Number(value) >= 0.01, 'El mínimo es 0,01 MON.'),
-  description: z.string().trim().min(10, 'Contá el hito en al menos 10 caracteres.').max(300, 'Máximo 300 caracteres.'),
-  deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Elegí una fecha.'),
-});
-
 type PoolOpeningFormProps = {
   artistId: bigint;
   onSuccess?: (poolId: bigint) => void;
 };
 
 export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
+  const t = useT();
   const publicClient = usePublicClient();
   const { open, isPending, isConfirming } = useOpenPool();
   const [amount, setAmount] = useState('0.1');
@@ -44,16 +36,30 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
   const deadlineUnix = deadlineToUnix(deadline);
   const summaryDate = deadlineUnix !== undefined ? formatDeadline(deadlineUnix) : '…';
 
+  const openPoolSchema = z.object({
+    amount: z
+      .string()
+      .trim()
+      .regex(/^\d+(\.\d{1,18})?$/, t('openPoolAmountInvalid'))
+      .refine((value) => Number(value) >= 0.01, t('openPoolAmountMin')),
+    description: z
+      .string()
+      .trim()
+      .min(10, t('openPoolDescShort'))
+      .max(300, t('openPoolDescLong')),
+    deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t('openPoolPickDate')),
+  });
+
   async function onSubmit() {
     setError(null);
     const parsed = openPoolSchema.safeParse({ amount, description, deadline });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Revisá los datos.');
+      setError(parsed.error.issues[0]?.message ?? t('openPoolCheckData'));
       return;
     }
     const unix = deadlineToUnix(parsed.data.deadline);
     if (unix === undefined) {
-      setError('Elegí una fecha dentro de los próximos 90 días.');
+      setError(t('openPoolDateWindow'));
       return;
     }
 
@@ -68,7 +74,7 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
         value: parseEther(parsed.data.amount),
       });
       if (!publicClient) {
-        setError('No pudimos confirmar el pozo. Revisá más tarde si quedó abierto.');
+        setError(t('openPoolConfirmFail'));
         return;
       }
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -80,7 +86,7 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
       const poolId = logs[0]?.args.poolId;
       if (poolId === undefined) {
         log.warn('pool_opened_event_missing', { layer: 'web', requestId: getRequestId() });
-        setError('El pozo se abrió, pero no pudimos guardar la descripción.');
+        setError(t('openPoolMetaFail'));
         return;
       }
       const saved = await registerPoolMetadata({
@@ -89,12 +95,12 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
         description: text,
       });
       if (!saved) {
-        setError('El pozo quedó abierto, pero la descripción no se guardó. Probá de nuevo en un momento.');
+        setError(t('openPoolMetaSoftFail'));
       }
       setCreatedPoolId(poolId);
       onSuccess?.(poolId);
     } catch (error: unknown) {
-      setError(userFacingMessage(error, 'No se pudo abrir el pozo. Probá de nuevo en un momento.'));
+      setError(userFacingMessage(error, t('openPoolFail')));
     } finally {
       setSubmitting(false);
     }
@@ -103,9 +109,9 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
   if (createdPoolId !== null) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-[#e3e8d8]">Listo. El pozo quedó abierto.</p>
+        <p className="text-sm text-[#e3e8d8]">{t('openPoolReady')}</p>
         <Link to={`/pool/${createdPoolId.toString()}`} className="text-sm text-ocre-600 underline">
-          Ver el pozo <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
+          {t('openPoolView')} <Icon name="arrow-right" className="ml-1 inline h-3.5 w-3.5" />
         </Link>
       </div>
     );
@@ -120,7 +126,7 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
       }}
     >
       <label className="block space-y-1 text-sm text-[#e3e8d8]">
-        <span>Monto del pozo (MON)</span>
+        <span>{t('openPoolAmount')}</span>
         <input
           type="number"
           min="0.01"
@@ -135,7 +141,7 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
       </label>
 
       <label className="block space-y-1 text-sm text-[#e3e8d8]">
-        <span>¿Qué hito vas a cumplir?</span>
+        <span>{t('openPoolMilestone')}</span>
         <textarea
           value={description}
           maxLength={300}
@@ -148,13 +154,13 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
         />
         <span className="text-xs text-[#9ba888]">
           {description.trim().length < 10
-            ? `Faltan ${10 - description.trim().length} caracteres.`
-            : `${description.trim().length} / 300`}
+            ? t('openPoolCharsLeft', { n: 10 - description.trim().length })
+            : t('openPoolCharsCount', { n: description.trim().length })}
         </span>
       </label>
 
       <label className="block space-y-1 text-sm text-[#e3e8d8]">
-        <span>Fecha límite</span>
+        <span>{t('openPoolDeadline')}</span>
         <input
           type="date"
           min={todayInput()}
@@ -169,13 +175,12 @@ export function PoolOpeningForm({ artistId, onSuccess }: PoolOpeningFormProps) {
       </label>
 
       <p className="rounded-lg border border-[#3b4725] bg-[#181f12] p-3 text-sm text-[#e3e8d8]">
-        Vas a abrir un pozo de {amount || '…'} MON hasta el {summaryDate}. La descripción queda guardada
-        aparte; en la red queda su huella.
+        {t('openPoolSummary', { amount: amount || '…', date: summaryDate })}
       </p>
 
       {error ? <p className="text-sm text-vino-700">{error}</p> : null}
 
-      <ActionButton label="Abrir pozo" onClick={() => void onSubmit()} loading={busy} disabled={busy} />
+      <ActionButton label={t('openPoolSubmit')} onClick={() => void onSubmit()} loading={busy} disabled={busy} />
     </form>
   );
 }

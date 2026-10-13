@@ -10,6 +10,7 @@ import {
   shouldPersistQuery,
 } from '../lib/query-persist';
 import { MotionProvider } from '../effects/MotionProvider';
+import { LocaleProvider } from '../i18n/LocaleContext';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => createAppQueryClient());
@@ -35,11 +36,13 @@ export function Providers({ children }: { children: ReactNode }) {
         warmAppData(queryClient);
       }}
     >
-      <EntrySignalProvider>
-        <MotionProvider>
-          <ToastProvider>{cacheReady ? children : null}</ToastProvider>
-        </MotionProvider>
-      </EntrySignalProvider>
+      <LocaleProvider>
+        <EntrySignalProvider>
+          <MotionProvider>
+            <ToastProvider>{cacheReady ? children : null}</ToastProvider>
+          </MotionProvider>
+        </EntrySignalProvider>
+      </LocaleProvider>
     </PersistQueryClientProvider>
   );
 }

@@ -13,12 +13,13 @@ import { useLoginWithEmail, useLoginWithOAuth, usePrivy } from '@privy-io/react-
 import { z } from 'zod';
 import { Icon } from './Icon';
 import { useEntrySignal } from '../lib/entry-signal';
+import { useT } from '../i18n/LocaleContext';
 
-const emailSchema = z.string().trim().email('Escribí un email válido.');
+const emailSchema = z.string().trim().email('Enter a valid email.');
 const codeSchema = z
   .string()
   .trim()
-  .regex(/^\d{6}$/, 'Ingresá el código de 6 dígitos.');
+  .regex(/^\d{6}$/, 'Enter the 6-digit code.');
 
 type EntrySheetContextValue = {
   openEntry: () => void;
@@ -102,6 +103,7 @@ function oauthErrorMessage(error: unknown): string {
 }
 
 function EntrySheet({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const { sendCode, loginWithCode, state: emailState } = useLoginWithEmail();
   const { setLoggingIn } = useEntrySignal();
   const [step, setStep] = useState<'entry' | 'code'>('entry');
@@ -179,14 +181,14 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
     setError(null);
     const parsed = codeSchema.safeParse(code);
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Ingresá el código de 6 dígitos.');
+      setError(parsed.error.issues[0]?.message ?? t('sixDigitCode'));
       return;
     }
     setBusy(true);
     try {
       await loginWithCode({ code: parsed.data });
     } catch {
-      setError('Ese código no es válido.');
+      setError(t('invalidCode'));
     } finally {
       setBusy(false);
     }
@@ -198,7 +200,7 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
     try {
       await sendCode({ email });
     } catch {
-      setError('No se pudo reenviar el código. Probá de nuevo.');
+      setError(t('invalidCode'));
     } finally {
       setBusy(false);
     }
@@ -208,7 +210,7 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[60] flex items-end justify-center lg:items-center">
       <button
         type="button"
-        aria-label="Cerrar"
+        aria-label={t('close')}
         onClick={resetAndClose}
         className="absolute inset-0 bg-black/50"
       />
@@ -230,9 +232,9 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
                 Entrada al registro
               </p>
               <h2 id="entry-title" className="m-0 mt-1 font-display text-4xl uppercase tracking-wide">
-                Entrá al registro
+                {t('entryTitle')}
               </h2>
-              <p className="m-0 text-sm text-[var(--muted)]">Con tu email o Google.</p>
+              <p className="m-0 text-sm text-[var(--muted)]">{t('entrySubtitle')}</p>
             </div>
 
             <div className="flex flex-col gap-4">
@@ -249,13 +251,13 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
                 ) : (
                   <GoogleMark />
                 )}
-                <span>{googleBusy ? 'Entrando…' : 'Continuar con Google'}</span>
+                <span>{googleBusy ? t('entering') : t('continueGoogle')}</span>
               </button>
 
               <div className="relative my-1 flex items-center justify-center">
                 <div className="h-px w-full bg-[var(--line)]" />
                 <span className="absolute bg-[var(--panel)] px-3 text-xs lowercase tracking-wider text-[var(--muted)]">
-                  o con email
+                  {t('orEmail')}
                 </span>
               </div>
 
@@ -266,7 +268,7 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
                   type="text"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="tu@correo.com"
+                  placeholder={t('emailPlaceholder')}
                   className="landing-focus h-11 w-full rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-4 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
                 />
                 <button
@@ -274,7 +276,7 @@ function EntrySheet({ onClose }: { onClose: () => void }) {
                   disabled={sending || googleBusy}
                   className="line-btn landing-focus flex h-11 w-full items-center justify-center gap-2 px-4 text-sm font-semibold disabled:opacity-50"
                 >
-                  <span>{sending ? 'Enviando…' : 'Enviar código'}</span>
+                  <span>{sending ? t('loading') : t('sendCode')}</span>
                   <Icon name="arrow-right" className="h-4 w-4" />
                 </button>
               </form>
@@ -346,6 +348,7 @@ function CodeStep({
   onResend: () => void;
   onChangeEmail: () => void;
 }) {
+  const t = useT();
   const otpRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -356,16 +359,16 @@ function CodeStep({
     <>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-widest text-[var(--gold)]">
-          Código de entrada
+          {t('entryCodeLabel')}
         </span>
       </div>
 
       <h2 id="entry-title" className="mb-1 font-display text-4xl uppercase tracking-wide">
-        Revisá tu correo
+        {t('entryCheckEmail')}
       </h2>
 
       <p className="mb-6 text-sm leading-relaxed text-[var(--muted)]">
-        Te enviamos un código de 6 dígitos a{' '}
+        {t('entryCodeSent')}{' '}
         <span className="mt-1 inline-block select-all rounded-lg bg-[var(--paper)] px-2 py-0.5 text-sm text-[var(--ink)]">
           {email}
         </span>
@@ -380,7 +383,7 @@ function CodeStep({
             maxLength={6}
             value={code}
             onChange={(event) => onCodeChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            aria-label="Código de 6 dígitos"
+            aria-label={t('codeAria')}
             className="absolute inset-0 z-10 cursor-text opacity-0"
           />
           <div className="pointer-events-none grid grid-cols-6 gap-2">
@@ -415,7 +418,7 @@ function CodeStep({
           disabled={sending}
           className="sun-btn landing-focus mb-4 flex h-11 w-full items-center justify-center px-4 text-sm font-semibold disabled:opacity-50"
         >
-          {sending ? 'Confirmando…' : 'Confirmar entrada'}
+          {sending ? t('confirming') : t('confirmEntry')}
         </button>
       </form>
 
@@ -426,14 +429,14 @@ function CodeStep({
           disabled={sending}
           className="landing-focus text-left text-xs tracking-wider text-[var(--gold)] underline disabled:opacity-50"
         >
-          Reenviar código
+          {t('resendCode')}
         </button>
         <button
           type="button"
           onClick={onChangeEmail}
           className="landing-focus text-right text-xs text-[var(--muted)] underline"
         >
-          Cambiar email
+          {t('changeEmail')}
         </button>
       </div>
 
@@ -443,7 +446,7 @@ function CodeStep({
           onClick={onChangeEmail}
           className="landing-focus text-xs text-[var(--muted)] underline"
         >
-          ← Volver atrás
+          {t('goBack')}
         </button>
       </div>
     </>
